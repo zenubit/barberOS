@@ -7,7 +7,6 @@ import BarbersManager from './BarbersManager';
 const ROLES = [
   { value: 'customer', label: 'Cliente' },
   { value: 'barber', label: 'Barbero' },
-  { value: 'admin', label: 'Admin' },
   { value: 'super_admin', label: 'Super admin' },
 ];
 const STATUSES = [
@@ -48,7 +47,7 @@ function UsersTab() {
           await barbersService.createBarber({
             profile_id: profile.id,
             name: `${profile.first_name} ${profile.first_lastname}`.trim(),
-            role: role === 'super_admin' ? 'Super admin' : role === 'admin' ? 'Admin' : 'Barbero',
+            role: 'Barbero',
             phone: profile.phone || null,
             email: profile.email || null,
             status: 'active',
@@ -131,7 +130,7 @@ function UsersTab() {
                     </select>
                   </td>
                   <td>
-                    {p.role === 'admin' ? (
+                    {p.role === 'barber' ? (
                       <button
                         onClick={() => toggleInventoryPermission(p)}
                         disabled={busyId === p.id}

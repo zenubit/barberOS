@@ -22,7 +22,10 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   phone TEXT,
   identification TEXT,
   identification_type TEXT DEFAULT 'CC' CHECK (identification_type IN ('CC', 'TI', 'CE', 'PP', 'NIT')),
-  role TEXT DEFAULT 'customer' CHECK (role IN ('customer', 'admin', 'barber', 'super_admin')),
+  -- Solo 3 roles: customer, barber (todo el staff, incl. permiso delegado
+  -- de inventario), super_admin. El rol 'admin' se eliminó en
+  -- migrations/007_remove_admin_role.sql por ser idéntico a barber.
+  role TEXT DEFAULT 'customer' CHECK (role IN ('customer', 'barber', 'super_admin')),
   avatar_url TEXT,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'blocked', 'suspended')),
   is_frequent BOOLEAN DEFAULT FALSE,
@@ -710,9 +713,11 @@ ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.daily_sales ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 
--- is_admin() = admin o super_admin (gestión general); is_super_admin() = dueño
--- (usuarios, catálogo maestro, tienda, sorteos, caja global); my_barber_id()
--- resuelve la fila de barbers vinculada al usuario logueado (self-service).
+-- is_admin() = super_admin (se conserva por compatibilidad con RLS de otras
+-- tablas; el rol 'admin' que hacía match aparte ya no existe desde
+-- migrations/007_remove_admin_role.sql, así que hoy equivale a
+-- is_super_admin()); my_barber_id() resuelve la fila de barbers vinculada
+-- al usuario logueado (self-service).
 -- Ver migrations/003_roles_and_barber_cash.sql para el detalle de políticas RLS
 -- "self" vs "super_admin" agregadas sobre barbers/barber_services/
 -- barber_schedules/schedule_blocks/reserved_slots/daily_sales/expenses.
@@ -741,15 +746,17 @@ RETURNS UUID LANGUAGE sql STABLE SECURITY DEFINER AS $$
   SELECT id FROM public.barbers WHERE profile_id = auth.uid() LIMIT 1;
 $$;
 
--- Permiso delegado de inventario: super_admin siempre puede; un admin
+-- Permiso delegado de inventario: super_admin siempre puede; un barbero
 -- normal solo si el super_admin le activó profiles.can_manage_inventory.
--- Ver migrations/004_inventory_permission_and_raffle_security.sql.
+-- Ver migrations/004_inventory_permission_and_raffle_security.sql y
+-- migrations/007_remove_admin_role.sql (el flag ahora aplica sobre
+-- role='barber' en vez de un rol 'admin' separado, que se eliminó).
 CREATE OR REPLACE FUNCTION public.can_manage_inventory()
 RETURNS BOOLEAN LANGUAGE sql SECURITY DEFINER STABLE AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.profiles
     WHERE id = auth.uid()
-      AND (role = 'super_admin' OR (role = 'admin' AND can_manage_inventory = TRUE))
+      AND (role = 'super_admin' OR (role = 'barber' AND can_manage_inventory = TRUE))
   );
 $$;
 

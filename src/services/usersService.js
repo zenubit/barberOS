@@ -23,7 +23,7 @@ export const usersService = {
   async updateRole(id, role) {
     try {
       if (!id) throw new Error('Profile ID es requerido');
-      if (!['customer', 'barber', 'admin', 'super_admin'].includes(role)) throw new Error('Rol inválido');
+      if (!['customer', 'barber', 'super_admin'].includes(role)) throw new Error('Rol inválido');
       const { data, error } = await supabase
         .from('profiles')
         .update({ role, updated_at: new Date().toISOString() })

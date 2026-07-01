@@ -5,8 +5,8 @@
    Cian/Teal principal + Cromado + Toques cálidos dorados
    ========================================================= */
 :root {
-  --bg: #06080B;
-  --bg-2: #0A0D11;
+  --bg: #030405;
+  --bg-2: #06080A;
   --surface: #0F1218;
   --surface-2: #151A24;
   --surface-3: #1C212C;
@@ -69,18 +69,46 @@ html, body {
   z-index: -1;
   background-color: var(--bg);
   background-image:
-    radial-gradient(circle at 14% 22%, rgba(31, 229, 214, 0.16) 0%, transparent 48%),
-    radial-gradient(circle at 86% 68%, rgba(212, 165, 116, 0.11) 0%, transparent 52%),
-    radial-gradient(circle at 50% 102%, rgba(157, 144, 136, 0.08) 0%, transparent 62%);
+    radial-gradient(circle at 14% 22%, rgba(31, 229, 214, 0.13) 0%, transparent 48%),
+    radial-gradient(circle at 86% 68%, rgba(212, 165, 116, 0.09) 0%, transparent 52%),
+    radial-gradient(circle at 50% 102%, rgba(157, 144, 136, 0.06) 0%, transparent 62%);
   transition: background-color .3s ease;
+  overflow: hidden;
 }
+/* Aurora: banda cónica muy lenta y difuminada, DETRÁS de estrellas/meteoritos
+   (::before pinta primero) — le da profundidad/movimiento de fondo sin
+   opacar el resto de capas. */
 .grid-bg::before {
   content: '';
   position: absolute;
+  inset: -25%;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg,
+    rgba(43, 233, 212, 0.05) 55deg,
+    transparent 130deg,
+    rgba(212, 165, 116, 0.045) 210deg,
+    transparent 290deg,
+    rgba(43, 233, 212, 0.04) 345deg,
+    transparent 360deg
+  );
+  filter: blur(80px);
+  opacity: .85;
+  animation: auroraSpin 120s linear infinite;
+  pointer-events: none;
+}
+@keyframes auroraSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .grid-bg::before { animation: none; } }
+
+/* Grano/ruido sutil, encima de todo (::after pinta al final) */
+.grid-bg::after {
+  content: '';
+  position: absolute;
   inset: 0;
-  opacity: .14;
+  opacity: .12;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
 }
 
 /* ===== Glow text ===== */

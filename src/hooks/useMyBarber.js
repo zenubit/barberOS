@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 
-const STAFF_ROLES = ['barber', 'admin', 'super_admin'];
+const STAFF_ROLES = ['barber', 'super_admin'];
 
 // Resuelve la fila de `barbers` vinculada al perfil logueado (self-service:
 // mi horario, mis servicios, mi caja). null si el usuario no es staff o

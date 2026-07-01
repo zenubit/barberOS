@@ -14,15 +14,16 @@ import ProductsManager from '../components/admin/ProductsManager';
 import CashManager from '../components/admin/CashManager';
 import RafflesManager from '../components/admin/RafflesManager';
 
-// admin y barbero son exactamente lo mismo: cada uno gestiona únicamente
-// su propio día/citas/horario/caja. Solo super_admin ve el negocio completo
-// (todas las citas, todos los horarios, caja global) y tiene acceso a
-// usuarios, catálogo maestro, tienda y sorteos. La única distinción que le
-// queda a 'admin' sobre 'barber' es el permiso delegado de inventario
-// (can_manage_inventory), que el super_admin puede otorgar puntualmente.
+// Solo dos roles de staff: barber y super_admin (el rol 'admin' se eliminó,
+// era idéntico a barber salvo por el permiso de inventario). Cada barbero
+// gestiona únicamente su propio día/citas/horario/caja. Solo super_admin ve
+// el negocio completo (todas las citas, todos los horarios, caja global) y
+// tiene acceso a usuarios, catálogo maestro, tienda y sorteos. Un barbero
+// puntual puede recibir el permiso delegado de inventario (can_manage_inventory)
+// desde el panel de Usuarios, sin necesidad de un rol separado.
 function buildNavItems(role, myBarberId, canManageInventory) {
   const isSuperAdmin = role === 'super_admin';
-  const hasInventoryAccess = isSuperAdmin || (role === 'admin' && canManageInventory);
+  const hasInventoryAccess = isSuperAdmin || (role === 'barber' && canManageInventory);
 
   const items = [
     {
@@ -127,7 +128,7 @@ export default function Admin() {
             <Logo size={26} />
           </button>
           <div className="text-[10px] font-mono tracking-widest uppercase mt-2" style={{ color: 'var(--ink-faint)' }}>
-            {profile?.role === 'super_admin' ? 'super admin' : profile?.role === 'admin' ? 'admin' : 'barbero'}
+            {profile?.role === 'super_admin' ? 'super admin' : 'barbero'}
           </div>
         </div>
         <nav className="flex-1 py-3 overflow-y-auto">

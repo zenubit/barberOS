@@ -12,7 +12,7 @@ export function useUser() {
     try {
       const userProfile = await authService.getProfile(userId);
       setProfile(userProfile);
-      setIsStaff(['admin', 'super_admin'].includes(userProfile?.role));
+      setIsStaff(['barber', 'super_admin'].includes(userProfile?.role));
       return userProfile;
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -65,7 +65,7 @@ export function useUser() {
       setError(null);
       const updated = await authService.updateProfile(user.id, updates);
       setProfile(updated);
-      if (updates.role) setIsStaff(['barber', 'admin', 'super_admin'].includes(updated?.role));
+      if (updates.role) setIsStaff(['barber', 'super_admin'].includes(updated?.role));
       return updated;
     } catch (err) {
       setError(err.message || 'Error al actualizar perfil');
