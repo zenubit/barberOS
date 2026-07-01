@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Icon } from '../components/Shared';
 import { formatCOP } from '../data/businessData';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,6 +24,7 @@ function nextDays(n) {
 export default function Booking() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [step, setStep] = useState(0);
   const [services, setServices] = useState([]);
@@ -43,6 +44,13 @@ export default function Booking() {
     (async () => {
       const s = await servicesService.getAllServices();
       setServices(s || []);
+      // Si venimos de "Reservar" en una tarjeta de servicio del Home,
+      // preseleccionamos ese servicio y avanzamos directo a elegir barbero.
+      const preselectId = location.state?.serviceId;
+      if (preselectId) {
+        const match = (s || []).find(sv => sv.id === preselectId);
+        if (match) { setSelectedService(match); setStep(1); }
+      }
     })();
   }, []);
 

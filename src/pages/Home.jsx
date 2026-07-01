@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Icon, Skeleton } from '../components/Shared';
 import { formatCOP } from '../data/businessData';
@@ -8,10 +8,10 @@ import servicesService from '../services/servicesService';
 import barbersService from '../services/barbersService';
 
 const FEATURES = [
-  { icon: 'Users', title: 'Varios trabajadores', desc: 'Cada barbero con su propio horario, servicios y disponibilidad.' },
-  { icon: 'Layers', title: 'Varios servicios', desc: 'Duración y capacidad configurables por servicio.' },
-  { icon: 'CalendarClock', title: 'Bloqueos inteligentes', desc: 'Almuerzo, días libres o vacaciones sin pisar turnos.' },
-  { icon: 'Star', title: 'Clientes frecuentes', desc: 'Franjas reservadas para quienes ya son de la casa.' },
+  { icon: 'Zap', title: 'Reserva en segundos', desc: 'Elige servicio, barbero y horario sin llamadas ni esperas.' },
+  { icon: 'ShieldCheck', title: 'Disponibilidad real', desc: 'Solo ves horarios realmente libres, sin cruces ni sorpresas.' },
+  { icon: 'Gift', title: 'Sorteos mensuales', desc: 'Asiste a tu cita y participa automáticamente por premios.' },
+  { icon: 'Sparkles', title: 'Barberos de confianza', desc: 'Elige siempre al mismo barbero o descubre uno nuevo.' },
 ];
 
 function handleSpotlight(e) {
@@ -22,6 +22,7 @@ function handleSpotlight(e) {
 
 export default function Home() {
   const { isStaff, loading: authLoading } = useAuth();
+  const location = useLocation();
   const [services, setServices] = useState([]);
   const [barbers, setBarbers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,8 +43,10 @@ export default function Home() {
   }, []);
 
   // Redirigir admin a panel (después de declarar todos los hooks, para no
-  // violar las Rules of Hooks con un return condicional temprano)
-  if (!authLoading && isStaff) {
+  // violar las Rules of Hooks con un return condicional temprano).
+  // Excepción: si viene de "Ver como cliente" (Admin.jsx pasa este state),
+  // se respeta la vista pública una vez en vez de rebotarlo de inmediato.
+  if (!authLoading && isStaff && !location.state?.viewAsClient) {
     return <Navigate to="/admin" replace />;
   }
 
@@ -136,19 +139,25 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: (i % 3) * 0.08 }}
-                className="glass-panel p-6 flex flex-col"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <h3 className="font-display font-semibold text-lg">{s.name}</h3>
-                  <span className="pill pill-teal">{s.duration_minutes} min</span>
-                </div>
-                {s.subtitle && <p className="text-sm mb-3" style={{ color: 'var(--ink-muted)' }}>{s.subtitle}</p>}
-                <div className="mt-auto pt-4 flex items-center justify-between">
-                  <span className="font-mono text-lg font-semibold text-teal-glow">{formatCOP(s.price)}</span>
-                  <Link to="/reservar" className="text-xs font-medium hover:opacity-80" style={{ color: 'var(--teal)' }}>
-                    Reservar →
-                  </Link>
-                </div>
+                <Link
+                  to="/reservar"
+                  state={{ serviceId: s.id }}
+                  className="glass-panel p-6 flex flex-col h-full cursor-pointer"
+                  aria-label={`Reservar ${s.name}`}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <h3 className="font-display font-semibold text-lg">{s.name}</h3>
+                    <span className="pill pill-teal">{s.duration_minutes} min</span>
+                  </div>
+                  {s.subtitle && <p className="text-sm mb-3" style={{ color: 'var(--ink-muted)' }}>{s.subtitle}</p>}
+                  <div className="mt-auto pt-4 flex items-center justify-between">
+                    <span className="font-mono text-lg font-semibold text-teal-glow">{formatCOP(s.price)}</span>
+                    <span className="text-xs font-medium inline-flex items-center gap-1" style={{ color: 'var(--teal)' }}>
+                      Reservar <Icon name="ArrowRight" size={12} />
+                    </span>
+                  </div>
+                </Link>
               </motion.div>
             ))}
           </div>

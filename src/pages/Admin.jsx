@@ -59,8 +59,9 @@ function buildNavItems(role, myBarberId, canManageInventory) {
 }
 
 export default function Admin() {
-  const { profile } = useAuth();
+  const { profile, signOut } = useAuth();
   const { barberId: myBarberId, loading: barberLoading, refetch: refetchBarber } = useMyBarber(profile);
+  const [signingOut, setSigningOut] = useState(false);
   const navItems = useMemo(
     () => buildNavItems(profile?.role, myBarberId, profile?.can_manage_inventory),
     [profile?.role, myBarberId, profile?.can_manage_inventory]
@@ -83,7 +84,7 @@ export default function Admin() {
       await barbersService.createBarber({
         profile_id: profile.id,
         name: `${profile.first_name} ${profile.first_lastname}`.trim(),
-        role: profile.role === 'super_admin' ? 'Propietario' : 'Barbero',
+        role: 'Barbero',
         phone: profile.phone || null,
         email: profile.email || null,
         status: 'active',
@@ -93,6 +94,18 @@ export default function Admin() {
       console.error(err);
     } finally {
       setActivating(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+      navigate('/', { replace: true });
+    } catch (err) {
+      console.error('Error al cerrar sesión:', err);
+    } finally {
+      setSigningOut(false);
     }
   };
 
@@ -109,7 +122,7 @@ export default function Admin() {
             <Logo size={26} />
           </button>
           <div className="text-[10px] font-mono tracking-widest uppercase mt-2" style={{ color: 'var(--ink-faint)' }}>
-            {profile?.role === 'super_admin' ? 'super admin · propietario' : profile?.role === 'admin' ? 'admin' : 'barbero'}
+            {profile?.role === 'super_admin' ? 'super admin' : profile?.role === 'admin' ? 'admin' : 'barbero'}
           </div>
         </div>
         <nav className="flex-1 py-3 overflow-y-auto">
@@ -143,8 +156,20 @@ export default function Admin() {
             </div>
             <div className="text-xs">{profile?.first_name} {profile?.first_lastname}</div>
           </div>
-          <button onClick={() => navigate('/')} className="w-full mt-2 text-xs py-2 flex items-center justify-center gap-2 cursor-pointer" style={{ color: 'var(--ink-muted)' }}>
+          <button
+            onClick={() => navigate('/', { state: { viewAsClient: true } })}
+            className="w-full mt-2 text-xs py-2 flex items-center justify-center gap-2 cursor-pointer"
+            style={{ color: 'var(--ink-muted)' }}
+          >
             <Icon name="ExternalLink" size={12} /> Ver como cliente
+          </button>
+          <button
+            onClick={handleSignOut}
+            disabled={signingOut}
+            className="w-full mt-1 text-xs py-2 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            style={{ color: 'var(--danger)' }}
+          >
+            <Icon name="LogOut" size={12} /> {signingOut ? 'Cerrando sesión…' : 'Cerrar sesión'}
           </button>
         </div>
       </aside>

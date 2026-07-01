@@ -193,7 +193,7 @@ function Layout({ children }) {
     <div className="min-h-screen flex flex-col">
       <header
         className="sticky top-0 z-50 border-b"
-        style={{ background: 'rgba(18,18,18,0.7)', backdropFilter: 'blur(20px) saturate(1.4)', borderColor: 'var(--border)' }}
+        style={{ background: 'rgba(10,13,17,0.75)', backdropFilter: 'blur(20px) saturate(1.4)', borderColor: 'var(--border)' }}
       >
         <div className="max-w-6xl mx-auto px-5 sm:px-8 h-[72px] flex items-center justify-between">
           <Link to="/" onClick={() => setMobileMenuOpen(false)}>
