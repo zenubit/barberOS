@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Icon, Logo } from '../components/Shared';
 import { useAuth } from '../contexts/AuthContext';
 import { useMyBarber } from '../hooks/useMyBarber';
+import barbersService from '../services/barbersService';
 import DashboardView from '../components/admin/DashboardView';
 import AppointmentsManager from '../components/admin/AppointmentsManager';
 import TeamManager from '../components/admin/TeamManager';
@@ -13,9 +14,10 @@ import ProductsManager from '../components/admin/ProductsManager';
 import CashManager from '../components/admin/CashManager';
 import RafflesManager from '../components/admin/RafflesManager';
 
-function buildNavItems(role, myBarberId) {
+function buildNavItems(role, myBarberId, canManageInventory) {
   const isSuperAdmin = role === 'super_admin';
   const isShopWide = role === 'admin' || role === 'super_admin';
+  const hasInventoryAccess = isSuperAdmin || (role === 'admin' && canManageInventory);
 
   const items = [
     {
@@ -44,8 +46,10 @@ function buildNavItems(role, myBarberId) {
   }
   items.push({ id: 'mi-horario', icon: 'CalendarClock', label: 'Mi horario', render: () => <ScheduleManager fixedBarberId={myBarberId} /> });
 
-  if (isSuperAdmin) {
+  if (hasInventoryAccess) {
     items.push({ id: 'tienda', icon: 'ShoppingBag', label: 'Tienda', render: () => <ProductsManager /> });
+  }
+  if (isSuperAdmin) {
     items.push({ id: 'caja-global', icon: 'Banknote', label: 'Caja global', render: () => <CashManager /> });
     items.push({ id: 'sorteos', icon: 'Gift', label: 'Sorteos', render: () => <RafflesManager /> });
   }
@@ -56,14 +60,41 @@ function buildNavItems(role, myBarberId) {
 
 export default function Admin() {
   const { profile } = useAuth();
-  const { barberId: myBarberId, loading: barberLoading } = useMyBarber(profile);
-  const navItems = useMemo(() => buildNavItems(profile?.role, myBarberId), [profile?.role, myBarberId]);
+  const { barberId: myBarberId, loading: barberLoading, refetch: refetchBarber } = useMyBarber(profile);
+  const navItems = useMemo(
+    () => buildNavItems(profile?.role, myBarberId, profile?.can_manage_inventory),
+    [profile?.role, myBarberId, profile?.can_manage_inventory]
+  );
 
   const [view, setView] = useState(navItems[0]?.id || 'dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activating, setActivating] = useState(false);
   const navigate = useNavigate();
 
   const activeItem = navItems.find(n => n.id === view) || navItems[0];
+
+  // Super admin / admin también son barberos ("tienen silla propia") — si
+  // por algún motivo su cuenta no tiene ficha en `barbers` (ej. rol asignado
+  // directo en BD), se pueden auto-activar como barbero desde aquí.
+  const activateAsBarber = async () => {
+    if (!profile) return;
+    setActivating(true);
+    try {
+      await barbersService.createBarber({
+        profile_id: profile.id,
+        name: `${profile.first_name} ${profile.first_lastname}`.trim(),
+        role: profile.role === 'super_admin' ? 'Propietario' : 'Barbero',
+        phone: profile.phone || null,
+        email: profile.email || null,
+        status: 'active',
+      });
+      await refetchBarber();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActivating(false);
+    }
+  };
 
   return (
     <div className="h-screen w-full overflow-hidden flex" style={{ background: 'var(--bg)', color: 'var(--ink)' }}>
@@ -89,6 +120,19 @@ export default function Admin() {
               <Icon name={it.icon} size={16} /> {it.label}
             </button>
           ))}
+
+          {!barberLoading && !myBarberId && (
+            <button
+              onClick={activateAsBarber}
+              disabled={activating}
+              className="sb-item w-full"
+              style={{ color: 'var(--gold)' }}
+              title="Habilita tu propio horario, servicios y caja como barbero"
+            >
+              <Icon name="Scissors" size={16} />
+              {activating ? 'Activando…' : 'Activarme como barbero'}
+            </button>
+          )}
         </nav>
         <div className="p-4 border-t" style={{ borderColor: 'var(--border)' }}>
           <div className="flex items-center gap-3 p-2">

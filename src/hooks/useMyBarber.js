@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 
 const STAFF_ROLES = ['barber', 'admin', 'super_admin'];
@@ -10,32 +10,27 @@ export function useMyBarber(profile) {
   const [barber, setBarber] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let mounted = true;
-
+  const fetchBarber = useCallback(async (mountedRef = { current: true }) => {
     if (!profile || !STAFF_ROLES.includes(profile.role)) {
-      setBarber(null);
-      setLoading(false);
-      return () => { mounted = false; };
+      if (mountedRef.current) { setBarber(null); setLoading(false); }
+      return;
     }
-
     setLoading(true);
-    supabase
+    const { data } = await supabase
       .from('barbers')
       .select('*')
       .eq('profile_id', profile.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (mounted) setBarber(data || null);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    return () => { mounted = false; };
+      .maybeSingle();
+    if (mountedRef.current) { setBarber(data || null); setLoading(false); }
   }, [profile?.id, profile?.role]);
 
-  return { barber, barberId: barber?.id || null, loading };
+  useEffect(() => {
+    const mountedRef = { current: true };
+    fetchBarber(mountedRef);
+    return () => { mountedRef.current = false; };
+  }, [fetchBarber]);
+
+  return { barber, barberId: barber?.id || null, loading, refetch: () => fetchBarber() };
 }
 
 export default useMyBarber;

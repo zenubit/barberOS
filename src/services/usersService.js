@@ -51,6 +51,24 @@ export const usersService = {
       handleError(err, 'updateStatus');
     }
   },
+
+  // Permiso delegado: solo super_admin puede otorgarlo (impuesto también por
+  // RLS vía can_manage_inventory()). Un admin normal no gestiona inventario
+  // a menos que se le active este flag.
+  async updateInventoryPermission(id, canManageInventory) {
+    try {
+      if (!id) throw new Error('Profile ID es requerido');
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ can_manage_inventory: !!canManageInventory, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select();
+      if (error) handleError(error, 'updateInventoryPermission');
+      return data?.[0];
+    } catch (err) {
+      handleError(err, 'updateInventoryPermission');
+    }
+  },
 };
 
 export default usersService;

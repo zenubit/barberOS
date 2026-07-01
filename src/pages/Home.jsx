@@ -26,11 +26,6 @@ export default function Home() {
   const [barbers, setBarbers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Redirigir admin a panel
-  if (!authLoading && isStaff) {
-    return <Navigate to="/admin" replace />;
-  }
-
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -45,6 +40,12 @@ export default function Home() {
     })();
     return () => { mounted = false; };
   }, []);
+
+  // Redirigir admin a panel (después de declarar todos los hooks, para no
+  // violar las Rules of Hooks con un return condicional temprano)
+  if (!authLoading && isStaff) {
+    return <Navigate to="/admin" replace />;
+  }
 
   return (
     <div>

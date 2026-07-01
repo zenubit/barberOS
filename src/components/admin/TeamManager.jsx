@@ -77,16 +77,29 @@ function UsersTab() {
     }
   };
 
+  const toggleInventoryPermission = async (profile) => {
+    setBusyId(profile.id);
+    setError(null);
+    try {
+      await usersService.updateInventoryPermission(profile.id, !profile.can_manage_inventory);
+      await load();
+    } catch (err) {
+      setError(err.message || 'No se pudo actualizar el permiso de inventario');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <div>
       <ErrorBanner message={error} onDismiss={() => setError(null)} />
       {loading ? <div className="surface overflow-hidden"><TableSkeleton cols={4} /></div> : (
         <div className="surface overflow-hidden overflow-x-auto">
           <table className="table">
-            <thead><tr><th>Nombre</th><th>Correo / teléfono</th><th>Rol</th><th>Estado</th></tr></thead>
+            <thead><tr><th>Nombre</th><th>Correo / teléfono</th><th>Rol</th><th>Estado</th><th>Inventario</th></tr></thead>
             <tbody>
               {profiles.length === 0 && (
-                <tr><td colSpan={4} className="text-center py-8" style={{ color: 'var(--ink-faint)' }}>Sin usuarios todavía.</td></tr>
+                <tr><td colSpan={5} className="text-center py-8" style={{ color: 'var(--ink-faint)' }}>Sin usuarios todavía.</td></tr>
               )}
               {profiles.map(p => (
                 <tr key={p.id}>
@@ -116,6 +129,22 @@ function UsersTab() {
                     >
                       {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                     </select>
+                  </td>
+                  <td>
+                    {p.role === 'admin' ? (
+                      <button
+                        onClick={() => toggleInventoryPermission(p)}
+                        disabled={busyId === p.id}
+                        className={`pill cursor-pointer ${p.can_manage_inventory ? 'pill-teal' : 'pill-ink'}`}
+                        title="Permite gestionar la tienda/inventario sin ser super_admin"
+                      >
+                        {p.can_manage_inventory ? 'Habilitado' : 'Sin acceso'}
+                      </button>
+                    ) : (
+                      <span className="text-xs" style={{ color: 'var(--ink-faint)' }}>
+                        {p.role === 'super_admin' ? 'Siempre' : '—'}
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

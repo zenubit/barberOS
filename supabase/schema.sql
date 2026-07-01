@@ -28,6 +28,10 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   is_frequent BOOLEAN DEFAULT FALSE,
   no_show_count INTEGER DEFAULT 0,
   email_verified BOOLEAN DEFAULT FALSE,
+  -- Permiso delegado: un admin normal NO gestiona inventario/tienda a
+  -- menos que el super_admin le otorgue este flag explícitamente
+  -- (ver migrations/004_inventory_permission_and_raffle_security.sql).
+  can_manage_inventory BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -450,7 +454,8 @@ BEGIN
 END;
 $$;
 
--- Usuarios elegibles para sorteo mensual
+-- Usuarios elegibles para sorteo mensual (solo super_admin puede invocarlo:
+-- expone nombres/conteos de clientes, ver migrations/004_*.sql)
 CREATE OR REPLACE FUNCTION public.get_raffle_eligible_users(target_month DATE)
 RETURNS TABLE (
   user_id UUID,
@@ -458,6 +463,10 @@ RETURNS TABLE (
   completed_appointments BIGINT
 ) LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
+  IF NOT public.is_super_admin() THEN
+    RAISE EXCEPTION 'No autorizado';
+  END IF;
+
   RETURN QUERY
   SELECT
     a.user_id,
@@ -477,13 +486,17 @@ BEGIN
 END;
 $$;
 
--- Ejecutar sorteo mensual
+-- Ejecutar sorteo mensual (solo super_admin, ver migrations/004_*.sql)
 CREATE OR REPLACE FUNCTION public.execute_monthly_raffle(target_month DATE)
 RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
   winner UUID;
   eligible_total INTEGER;
 BEGIN
+  IF NOT public.is_super_admin() THEN
+    RAISE EXCEPTION 'No autorizado';
+  END IF;
+
   IF EXISTS (SELECT 1 FROM public.monthly_raffles WHERE raffle_month = target_month) THEN
     RAISE EXCEPTION 'Ya existe un sorteo para este mes';
   END IF;
@@ -727,6 +740,18 @@ RETURNS UUID LANGUAGE sql STABLE SECURITY DEFINER AS $$
   SELECT id FROM public.barbers WHERE profile_id = auth.uid() LIMIT 1;
 $$;
 
+-- Permiso delegado de inventario: super_admin siempre puede; un admin
+-- normal solo si el super_admin le activó profiles.can_manage_inventory.
+-- Ver migrations/004_inventory_permission_and_raffle_security.sql.
+CREATE OR REPLACE FUNCTION public.can_manage_inventory()
+RETURNS BOOLEAN LANGUAGE sql SECURITY DEFINER STABLE AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid()
+      AND (role = 'super_admin' OR (role = 'admin' AND can_manage_inventory = TRUE))
+  );
+$$;
+
 -- PROFILES
 DROP POLICY IF EXISTS "profiles_select_own" ON public.profiles;
 CREATE POLICY "profiles_select_own" ON public.profiles
@@ -792,29 +817,36 @@ DROP POLICY IF EXISTS "services_admin_all" ON public.services;
 CREATE POLICY "services_admin_all" ON public.services
   FOR ALL USING (public.is_admin());
 
--- PRODUCT CATEGORIES
+-- PRODUCT CATEGORIES (tienda/inventario: super_admin siempre, admin solo con
+-- permiso delegado can_manage_inventory — ver can_manage_inventory())
 DROP POLICY IF EXISTS "product_categories_public_read" ON public.product_categories;
 CREATE POLICY "product_categories_public_read" ON public.product_categories
   FOR SELECT USING (active = TRUE);
 DROP POLICY IF EXISTS "product_categories_admin_all" ON public.product_categories;
-CREATE POLICY "product_categories_admin_all" ON public.product_categories
-  FOR ALL USING (public.is_admin());
+DROP POLICY IF EXISTS "product_categories_super_admin_all" ON public.product_categories;
+DROP POLICY IF EXISTS "product_categories_inventory_manage" ON public.product_categories;
+CREATE POLICY "product_categories_inventory_manage" ON public.product_categories
+  FOR ALL USING (public.can_manage_inventory());
 
 -- PRODUCTS
 DROP POLICY IF EXISTS "products_public_read" ON public.products;
 CREATE POLICY "products_public_read" ON public.products
   FOR SELECT USING (visible = TRUE);
 DROP POLICY IF EXISTS "products_admin_all" ON public.products;
-CREATE POLICY "products_admin_all" ON public.products
-  FOR ALL USING (public.is_admin());
+DROP POLICY IF EXISTS "products_super_admin_all" ON public.products;
+DROP POLICY IF EXISTS "products_inventory_manage" ON public.products;
+CREATE POLICY "products_inventory_manage" ON public.products
+  FOR ALL USING (public.can_manage_inventory());
 
 -- PRODUCT IMAGES
 DROP POLICY IF EXISTS "product_images_public_read" ON public.product_images;
 CREATE POLICY "product_images_public_read" ON public.product_images
   FOR SELECT USING (TRUE);
 DROP POLICY IF EXISTS "product_images_admin_all" ON public.product_images;
-CREATE POLICY "product_images_admin_all" ON public.product_images
-  FOR ALL USING (public.is_admin());
+DROP POLICY IF EXISTS "product_images_super_admin_all" ON public.product_images;
+DROP POLICY IF EXISTS "product_images_inventory_manage" ON public.product_images;
+CREATE POLICY "product_images_inventory_manage" ON public.product_images
+  FOR ALL USING (public.can_manage_inventory());
 
 -- APPOINTMENTS
 DROP POLICY IF EXISTS "appointments_insert_auth" ON public.appointments;

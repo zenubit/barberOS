@@ -2,36 +2,42 @@ import React, { useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 
 const ORBS = [
-  { size: 500, top: '-10%', left: '-5%', color: 'rgba(31,229,214,0.15)', duration: 30 },
-  { size: 420, top: '60%', left: '82%', color: 'rgba(212,165,116,0.12)', duration: 36 },
-  { size: 360, top: '78%', left: '4%', color: 'rgba(31,229,214,0.1)', duration: 28 },
+  { size: 560, top: '-14%', left: '-8%', color: 'rgba(31,229,214,0.18)', duration: 34 },
+  { size: 460, top: '58%', left: '80%', color: 'rgba(212,165,116,0.14)', duration: 40 },
+  { size: 380, top: '82%', left: '2%', color: 'rgba(31,229,214,0.12)', duration: 30 },
 ];
 
+const STAR_COLORS = ['var(--chrome)', 'var(--chrome)', 'var(--chrome)', 'var(--teal)', 'var(--gold)'];
+
 function makeStars(count) {
-  return Array.from({ length: count }, (_, i) => ({
-    id: i,
-    top: `${Math.random() * 100}%`,
-    left: `${Math.random() * 100}%`,
-    size: Math.random() < 0.8 ? 1 : Math.random() < 0.95 ? 2 : 3,
-    duration: 2 + Math.random() * 3,
-    delay: Math.random() * 5,
-  }));
+  return Array.from({ length: count }, (_, i) => {
+    const sizeRoll = Math.random();
+    return {
+      id: i,
+      top: `${Math.random() * 100}%`,
+      left: `${Math.random() * 100}%`,
+      size: sizeRoll < 0.7 ? 1 : sizeRoll < 0.92 ? 2 : 3,
+      color: STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)],
+      duration: 2.5 + Math.random() * 3.5,
+      delay: Math.random() * 6,
+    };
+  });
 }
 
 function makeMeteors(count) {
   return Array.from({ length: count }, (_, i) => ({
     id: i,
-    top: `${5 + Math.random() * 35}%`,
-    left: `${Math.random() * 60}%`,
-    delay: i * 4 + Math.random() * 3,
-    repeatDelay: 6 + Math.random() * 6,
+    top: `${4 + Math.random() * 38}%`,
+    left: `${Math.random() * 65}%`,
+    delay: i * 5 + Math.random() * 4,
+    repeatDelay: 7 + Math.random() * 8,
   }));
 }
 
 export default function GridBackground() {
   const reduceMotion = useReducedMotion();
-  const stars = useMemo(() => makeStars(90), []);
-  const meteors = useMemo(() => makeMeteors(3), []);
+  const stars = useMemo(() => makeStars(150), []);
+  const meteors = useMemo(() => makeMeteors(4), []);
 
   return (
     <div className="grid-bg" aria-hidden="true">
@@ -42,24 +48,32 @@ export default function GridBackground() {
             position: 'absolute', width: o.size, height: o.size, top: o.top, left: o.left,
             borderRadius: '50%',
             background: `radial-gradient(circle, ${o.color} 0%, transparent 70%)`,
-            filter: 'blur(10px)',
+            filter: 'blur(14px)',
           }}
-          animate={{ x: [0, 30, -20, 0], y: [0, -20, 25, 0] }}
+          animate={{ x: [0, 36, -24, 0], y: [0, -24, 30, 0] }}
           transition={{ duration: o.duration, repeat: Infinity, ease: 'easeInOut' }}
         />
       ))}
 
-      {stars.map(s => (
-        <motion.div
-          key={`star-${s.id}`}
-          style={{
-            position: 'absolute', top: s.top, left: s.left, width: s.size, height: s.size,
-            borderRadius: '50%', background: 'var(--chrome)',
-          }}
-          animate={reduceMotion ? { opacity: 0.5 } : { opacity: [0.15, 0.9, 0.15] }}
-          transition={reduceMotion ? {} : { duration: s.duration, repeat: Infinity, delay: s.delay, ease: 'easeInOut' }}
-        />
-      ))}
+      <motion.div
+        style={{ position: 'absolute', inset: 0 }}
+        animate={reduceMotion ? {} : { x: [0, 6, -4, 0], y: [0, -4, 5, 0] }}
+        transition={{ duration: 60, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        {stars.map(s => (
+          <motion.div
+            key={`star-${s.id}`}
+            style={{
+              position: 'absolute', top: s.top, left: s.left, width: s.size, height: s.size,
+              borderRadius: '50%', background: s.color,
+              boxShadow: s.size >= 2 ? `0 0 ${s.size * 2}px 0.5px currentColor` : 'none',
+              color: s.color,
+            }}
+            animate={reduceMotion ? { opacity: 0.55 } : { opacity: [0.12, 0.95, 0.12] }}
+            transition={reduceMotion ? {} : { duration: s.duration, repeat: Infinity, delay: s.delay, ease: 'easeInOut' }}
+          />
+        ))}
+      </motion.div>
 
       {!reduceMotion && meteors.map(m => (
         <motion.div
@@ -71,12 +85,12 @@ export default function GridBackground() {
           }}
           initial={{ opacity: 0 }}
           animate={{
-            x: [0, 260],
-            y: [0, 160],
+            x: [0, 280],
+            y: [0, 175],
             opacity: [0, 1, 1, 0],
           }}
           transition={{
-            duration: 1.1,
+            duration: 1.2,
             repeat: Infinity,
             repeatDelay: m.repeatDelay,
             delay: m.delay,
@@ -85,8 +99,8 @@ export default function GridBackground() {
         >
           <div
             style={{
-              position: 'absolute', top: 0, right: 2, width: 100, height: 1,
-              background: 'linear-gradient(90deg, rgba(212,165,116,0.8), transparent)',
+              position: 'absolute', top: 0, right: 2, width: 110, height: 1,
+              background: 'linear-gradient(90deg, rgba(212,165,116,0.85), transparent)',
               transform: 'rotate(210deg)', transformOrigin: 'right center',
             }}
           />

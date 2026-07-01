@@ -13,6 +13,36 @@ const slugify = (name) =>
     .replace(/(^-|-$)+/g, '');
 
 export const productsService = {
+  // Vista pública (tienda): RLS ya filtra a solo visible=true / categorías activas,
+  // pero se acota explícitamente aquí para dejar la intención clara en el código.
+  async getPublicProducts() {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*, product_categories:category_id(name, slug), product_images(id, image_url, display_order)')
+        .eq('visible', true)
+        .order('created_at', { ascending: false });
+      if (error) handleError(error, 'getPublicProducts');
+      return data || [];
+    } catch (err) {
+      handleError(err, 'getPublicProducts');
+    }
+  },
+
+  async getPublicCategories() {
+    try {
+      const { data, error } = await supabase
+        .from('product_categories')
+        .select('*')
+        .eq('active', true)
+        .order('display_order', { ascending: true });
+      if (error) handleError(error, 'getPublicCategories');
+      return data || [];
+    } catch (err) {
+      handleError(err, 'getPublicCategories');
+    }
+  },
+
   async getAllProductsAdmin() {
     try {
       const { data, error } = await supabase

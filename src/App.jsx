@@ -1,12 +1,14 @@
-import React, { Suspense, lazy, useState } from 'react';
+import React, { Suspense, lazy, useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import Home from './pages/Home';
 import Booking from './pages/Booking';
 import Auth from './pages/Auth';
 import Profile from './pages/Profile';
+import Shop from './pages/Shop';
+import Raffles from './pages/Raffles';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { Logo, Icon } from './components/Shared';
 import { CONTACT_INFO } from './data/businessData';
 import GridBackground from './components/GridBackground';
@@ -50,7 +52,11 @@ function ProtectedBookingRoute() {
   return <Booking />;
 }
 
-const NAV_LINKS = [{ to: '/', label: 'Inicio' }];
+const NAV_LINKS = [
+  { to: '/', label: 'Inicio' },
+  { to: '/tienda', label: 'Tienda' },
+  { to: '/sorteos', label: 'Sorteos' },
+];
 
 function NavLink({ to, label }) {
   const location = useLocation();
@@ -66,10 +72,34 @@ function NavLink({ to, label }) {
   );
 }
 
-
+/**
+ * Dropdown en Portal: se posiciona con coordenadas absolutas del viewport
+ * (getBoundingClientRect) en vez de `position: absolute` anidado, para que
+ * nunca quede "atrapado" por un ancestro con backdrop-filter/transform
+ * (el header usa backdrop-filter, lo que crea un containing block nuevo
+ * para hijos `position: fixed` y rompía el posicionamiento del menú).
+ */
 function UserMenu() {
   const { isLoggedIn, profile, signOut, isStaff } = useAuth();
   const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, right: 0 });
+  const btnRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const updatePosition = () => {
+      const rect = btnRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setCoords({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+    };
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [open]);
 
   if (!isLoggedIn) {
     return (
@@ -85,24 +115,36 @@ function UserMenu() {
     : '??';
 
   return (
-    <div className="relative">
-      <button onClick={() => setOpen(!open)} aria-label="Menú de usuario" aria-expanded={open} className="flex items-center gap-2 cursor-pointer group">
+    <>
+      <button
+        ref={btnRef}
+        onClick={() => setOpen(o => !o)}
+        aria-label="Menú de usuario"
+        aria-expanded={open}
+        className="flex items-center gap-2 cursor-pointer group"
+      >
         <div className="w-9 h-9 rounded-lg flex items-center justify-center font-mono font-semibold" style={{ background: 'var(--teal)', color: 'var(--accent-ink)' }}>
           {initials}
         </div>
         <Icon name="ChevronDown" size={14} style={{ color: 'var(--ink-faint)' }} />
       </button>
 
-      {open && (
+      {open && createPortal(
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} style={{ pointerEvents: 'auto' }} />
-          <div className="absolute right-0 top-full mt-2 w-56 py-2 z-50 glass-panel" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
+          <div className="fixed inset-0" style={{ zIndex: 90 }} onClick={() => setOpen(false)} />
+          <div
+            className="fixed w-56 py-2 glass-panel"
+            style={{ top: coords.top, right: coords.right, zIndex: 91, maxHeight: '75vh', overflowY: 'auto' }}
+          >
             <div className="px-4 py-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
               <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>{profile?.first_name} {profile?.first_lastname}</p>
               <p className="text-xs truncate" style={{ color: 'var(--ink-faint)' }}>{profile?.email}</p>
             </div>
             <Link to="/perfil" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:opacity-80" style={{ color: 'var(--ink-muted)' }}>
               <Icon name="User" size={16} /> Mis citas
+            </Link>
+            <Link to="/sorteos" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:opacity-80" style={{ color: 'var(--ink-muted)' }}>
+              <Icon name="Gift" size={16} /> Sorteos
             </Link>
             {isStaff && (
               <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:opacity-80" style={{ color: 'var(--ink-muted)' }}>
@@ -117,9 +159,10 @@ function UserMenu() {
               <Icon name="LogOut" size={16} /> Cerrar sesión
             </button>
           </div>
-        </>
+        </>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
 
@@ -163,6 +206,17 @@ function Layout({ children }) {
 
         {mobileMenuOpen && (
           <div className="md:hidden border-t px-5 py-4 flex flex-col gap-1" style={{ borderColor: 'var(--border)', background: 'var(--bg)' }}>
+            {NAV_LINKS.map(link => (
+              <Link
+                key={link.to}
+                to={link.to}
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-sm font-medium py-2.5"
+                style={{ color: 'var(--ink-muted)' }}
+              >
+                {link.label}
+              </Link>
+            ))}
             <Link to="/reservar" onClick={() => setMobileMenuOpen(false)} className="btn-teal mt-2 flex items-center justify-center gap-2">
               <Icon name="Calendar" size={14} /> Reservar cita
             </Link>
@@ -185,8 +239,17 @@ function Layout({ children }) {
               </a>
             </div>
           </div>
-          <div className="border-t pt-4 text-[11px] font-mono" style={{ borderColor: 'var(--border)', color: 'var(--ink-faint)' }}>
-            © {new Date().getFullYear()} {CONTACT_INFO.name}. Agendamiento inteligente para barberías.
+          <div className="border-t pt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] font-mono" style={{ borderColor: 'var(--border)', color: 'var(--ink-faint)' }}>
+            <span>© {new Date().getFullYear()} {CONTACT_INFO.name}. Agendamiento inteligente para barberías.</span>
+            <a
+              href="https://zenubit.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+              style={{ color: 'var(--ink-faint)' }}
+            >
+              Creado por <span style={{ color: 'var(--gold)' }}>Zenubit</span>
+            </a>
           </div>
         </div>
       </footer>
@@ -215,6 +278,8 @@ function AnimatedRoutes() {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<PageTransition><Home /></PageTransition>} />
+        <Route path="/tienda" element={<PageTransition><Shop /></PageTransition>} />
+        <Route path="/sorteos" element={<PageTransition><Raffles /></PageTransition>} />
         <Route path="/reservar" element={<PageTransition><ProtectedBookingRoute /></PageTransition>} />
         <Route path="/auth" element={<PageTransition><Auth /></PageTransition>} />
         <Route path="/perfil" element={<PageTransition><ProtectedProfileRoute /></PageTransition>} />
@@ -228,20 +293,18 @@ function AnimatedRoutes() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <div className="min-h-screen flex flex-col relative font-sans" style={{ color: 'var(--ink)' }}>
-          <GridBackground />
-          <CursorGlow />
-          <WelcomeSplash />
-          <BrowserRouter>
-            <AuthProvider>
-              <Layout>
-                <AnimatedRoutes />
-              </Layout>
-            </AuthProvider>
-          </BrowserRouter>
-        </div>
-      </ThemeProvider>
+      <div className="min-h-screen flex flex-col relative isolate font-sans" style={{ color: 'var(--ink)' }}>
+        <GridBackground />
+        <CursorGlow />
+        <WelcomeSplash />
+        <BrowserRouter>
+          <AuthProvider>
+            <Layout>
+              <AnimatedRoutes />
+            </Layout>
+          </AuthProvider>
+        </BrowserRouter>
+      </div>
     </ErrorBoundary>
   );
 }
