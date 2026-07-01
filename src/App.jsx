@@ -68,14 +68,19 @@ function NavLink({ to, label }) {
 
 function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
   return (
     <button
       onClick={toggleTheme}
-      className="w-9 h-9 flex items-center justify-center rounded-lg border transition-colors cursor-pointer"
-      style={{ borderColor: 'var(--border-strong)', color: 'var(--ink-muted)' }}
+      className="w-9 h-9 flex items-center justify-center rounded-lg border transition-all cursor-pointer hover:scale-110"
+      style={{
+        borderColor: isDark ? 'rgba(212,169,116,0.3)' : 'rgba(212,165,116,0.4)',
+        color: isDark ? 'var(--gold)' : 'var(--gold-dim)',
+        backgroundColor: isDark ? 'rgba(212,169,116,0.08)' : 'rgba(212,165,116,0.05)',
+      }}
       aria-label="Cambiar tema"
     >
-      <Icon name={theme === 'dark' ? 'Sun' : 'Moon'} size={16} />
+      <Icon name={isDark ? 'Sun' : 'Moon'} size={16} strokeWidth={2} />
     </button>
   );
 }

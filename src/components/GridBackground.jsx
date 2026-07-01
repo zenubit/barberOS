@@ -2,9 +2,9 @@ import React, { useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 
 const ORBS = [
-  { size: 480, top: '-12%', left: '-8%', color: 'rgba(31,229,214,0.11)', duration: 32 },
-  { size: 400, top: '62%', left: '82%', color: 'rgba(212,165,116,0.09)', duration: 38 },
-  { size: 320, top: '80%', left: '6%', color: 'rgba(31,229,214,0.07)', duration: 26 },
+  { size: 500, top: '-10%', left: '-5%', color: 'rgba(31,229,214,0.15)', duration: 30 },
+  { size: 420, top: '60%', left: '82%', color: 'rgba(212,165,116,0.12)', duration: 36 },
+  { size: 360, top: '78%', left: '4%', color: 'rgba(31,229,214,0.1)', duration: 28 },
 ];
 
 function makeStars(count) {
