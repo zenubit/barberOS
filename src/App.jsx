@@ -148,8 +148,8 @@ function UserMenu() {
         <>
           <div className="fixed inset-0" style={{ zIndex: 90 }} onClick={() => setOpen(false)} />
           <div
-            className="fixed w-56 py-2 glass-panel"
-            style={{ top: coords.top, right: coords.right, zIndex: 91, maxHeight: '75vh', overflowY: 'auto' }}
+            className="w-56 py-2 glass-panel"
+            style={{ position: 'fixed', top: coords.top, right: coords.right, zIndex: 91, maxHeight: '75vh', overflowY: 'auto' }}
           >
             <div className="px-4 py-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
               <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>{profile?.first_name} {profile?.first_lastname}</p>
