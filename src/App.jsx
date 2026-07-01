@@ -66,24 +66,6 @@ function NavLink({ to, label }) {
   );
 }
 
-function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
-  const isDark = theme === 'dark';
-  return (
-    <button
-      onClick={toggleTheme}
-      className="w-9 h-9 flex items-center justify-center rounded-lg border transition-all cursor-pointer hover:scale-110"
-      style={{
-        borderColor: isDark ? 'rgba(212,169,116,0.3)' : 'rgba(212,165,116,0.4)',
-        color: isDark ? 'var(--gold)' : 'var(--gold-dim)',
-        backgroundColor: isDark ? 'rgba(212,169,116,0.08)' : 'rgba(212,165,116,0.05)',
-      }}
-      aria-label="Cambiar tema"
-    >
-      <Icon name={isDark ? 'Sun' : 'Moon'} size={16} strokeWidth={2} />
-    </button>
-  );
-}
 
 function UserMenu() {
   const { isLoggedIn, profile, signOut, isStaff } = useAuth();
@@ -164,7 +146,6 @@ function Layout({ children }) {
           </nav>
 
           <div className="flex items-center gap-3">
-            <ThemeToggle />
             <Link to="/reservar" className="hidden sm:inline-flex btn-teal !py-2.5 !px-5 !text-xs items-center gap-2">
               <Icon name="Calendar" size={14} /> Reservar
             </Link>
