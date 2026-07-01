@@ -14,23 +14,28 @@ import ProductsManager from '../components/admin/ProductsManager';
 import CashManager from '../components/admin/CashManager';
 import RafflesManager from '../components/admin/RafflesManager';
 
+// admin y barbero son exactamente lo mismo: cada uno gestiona únicamente
+// su propio día/citas/horario/caja. Solo super_admin ve el negocio completo
+// (todas las citas, todos los horarios, caja global) y tiene acceso a
+// usuarios, catálogo maestro, tienda y sorteos. La única distinción que le
+// queda a 'admin' sobre 'barber' es el permiso delegado de inventario
+// (can_manage_inventory), que el super_admin puede otorgar puntualmente.
 function buildNavItems(role, myBarberId, canManageInventory) {
   const isSuperAdmin = role === 'super_admin';
-  const isShopWide = role === 'admin' || role === 'super_admin';
   const hasInventoryAccess = isSuperAdmin || (role === 'admin' && canManageInventory);
 
   const items = [
     {
       id: 'dashboard',
       icon: 'LayoutDashboard',
-      label: isShopWide ? 'Dashboard' : 'Mi día',
-      render: () => <DashboardView barberId={isShopWide ? null : myBarberId} />,
+      label: isSuperAdmin ? 'Dashboard' : 'Mi día',
+      render: () => <DashboardView barberId={isSuperAdmin ? null : myBarberId} />,
     },
     {
       id: 'citas',
       icon: 'Calendar',
-      label: isShopWide ? 'Citas' : 'Mis citas',
-      render: () => <AppointmentsManager fixedBarberId={isShopWide ? null : myBarberId} />,
+      label: isSuperAdmin ? 'Citas' : 'Mis citas',
+      render: () => <AppointmentsManager fixedBarberId={isSuperAdmin ? null : myBarberId} />,
     },
   ];
 

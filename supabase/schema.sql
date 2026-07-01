@@ -849,7 +849,10 @@ DROP POLICY IF EXISTS "product_images_inventory_manage" ON public.product_images
 CREATE POLICY "product_images_inventory_manage" ON public.product_images
   FOR ALL USING (public.can_manage_inventory());
 
--- APPOINTMENTS
+-- APPOINTMENTS (admin y barber son equivalentes: cada uno solo ve/gestiona
+-- las suyas vía appointments_select_own_barber/appointments_update_own_barber
+-- de migrations/003_*.sql; ver TODAS las citas del negocio es solo
+-- super_admin, ver migrations/006_unify_admin_barber.sql)
 DROP POLICY IF EXISTS "appointments_insert_auth" ON public.appointments;
 CREATE POLICY "appointments_insert_auth" ON public.appointments
   FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
@@ -857,11 +860,13 @@ DROP POLICY IF EXISTS "appointments_select_own" ON public.appointments;
 CREATE POLICY "appointments_select_own" ON public.appointments
   FOR SELECT USING (auth.uid() = user_id);
 DROP POLICY IF EXISTS "appointments_select_admin" ON public.appointments;
-CREATE POLICY "appointments_select_admin" ON public.appointments
-  FOR SELECT USING (public.is_admin());
+DROP POLICY IF EXISTS "appointments_select_super_admin" ON public.appointments;
+CREATE POLICY "appointments_select_super_admin" ON public.appointments
+  FOR SELECT USING (public.is_super_admin());
 DROP POLICY IF EXISTS "appointments_admin_all" ON public.appointments;
-CREATE POLICY "appointments_admin_all" ON public.appointments
-  FOR ALL USING (public.is_admin());
+DROP POLICY IF EXISTS "appointments_super_admin_all" ON public.appointments;
+CREATE POLICY "appointments_super_admin_all" ON public.appointments
+  FOR ALL USING (public.is_super_admin());
 
 -- RESERVATIONS
 DROP POLICY IF EXISTS "reservations_insert_auth" ON public.reservations;
