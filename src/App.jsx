@@ -113,8 +113,8 @@ function UserMenu() {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 w-56 py-2 z-50 glass-panel">
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} style={{ pointerEvents: 'auto' }} />
+          <div className="absolute right-0 top-full mt-2 w-56 py-2 z-50 glass-panel" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
             <div className="px-4 py-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
               <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>{profile?.first_name} {profile?.first_lastname}</p>
               <p className="text-xs truncate" style={{ color: 'var(--ink-faint)' }}>{profile?.email}</p>
@@ -128,7 +128,7 @@ function UserMenu() {
               </Link>
             )}
             <button
-              onClick={async () => { setOpen(false); await signOut(); }}
+              onClick={async () => { setOpen(false); await signOut(); window.location.href = '/'; }}
               className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:text-red-400 cursor-pointer"
               style={{ color: 'var(--ink-muted)' }}
             >

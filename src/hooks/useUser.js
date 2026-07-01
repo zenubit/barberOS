@@ -12,7 +12,7 @@ export function useUser() {
     try {
       const userProfile = await authService.getProfile(userId);
       setProfile(userProfile);
-      setIsStaff(['barber', 'admin', 'super_admin'].includes(userProfile?.role));
+      setIsStaff(['admin', 'super_admin'].includes(userProfile?.role));
       return userProfile;
     } catch (err) {
       console.error('Error fetching profile:', err);

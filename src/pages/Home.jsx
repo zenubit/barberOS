@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Icon, Skeleton } from '../components/Shared';
 import { formatCOP } from '../data/businessData';
+import { useAuth } from '../contexts/AuthContext';
 import servicesService from '../services/servicesService';
 import barbersService from '../services/barbersService';
 
@@ -20,9 +21,15 @@ function handleSpotlight(e) {
 }
 
 export default function Home() {
+  const { isStaff, loading: authLoading } = useAuth();
   const [services, setServices] = useState([]);
   const [barbers, setBarbers] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Redirigir admin a panel
+  if (!authLoading && isStaff) {
+    return <Navigate to="/admin" replace />;
+  }
 
   useEffect(() => {
     let mounted = true;
