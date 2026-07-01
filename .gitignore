@@ -19,3 +19,17 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Claude Code local configuration (machine-specific)
+.claude/
+.agents/
+
+# Local secrets and credentials
+.env*.local
+*.key
+*.pem
+secrets/
+
+# Temporary DB scripts (may contain credentials while testing)
+_test-*.js
+smoke-test.mjs
