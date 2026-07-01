@@ -2,9 +2,9 @@ import React, { useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 
 const ORBS = [
-  { size: 460, top: '-8%', left: '-6%', color: 'rgba(43,233,212,0.14)', duration: 28 },
-  { size: 380, top: '58%', left: '80%', color: 'rgba(139,155,168,0.14)', duration: 34 },
-  { size: 300, top: '82%', left: '8%', color: 'rgba(43,233,212,0.09)', duration: 24 },
+  { size: 480, top: '-12%', left: '-8%', color: 'rgba(31,229,214,0.11)', duration: 32 },
+  { size: 400, top: '62%', left: '82%', color: 'rgba(212,165,116,0.09)', duration: 38 },
+  { size: 320, top: '80%', left: '6%', color: 'rgba(31,229,214,0.07)', duration: 26 },
 ];
 
 function makeStars(count) {
@@ -66,8 +66,8 @@ export default function GridBackground() {
           key={`meteor-${m.id}`}
           style={{
             position: 'absolute', top: m.top, left: m.left, width: 2, height: 2, borderRadius: '50%',
-            background: 'var(--ink)',
-            boxShadow: '0 0 6px 1px rgba(43,233,212,0.8)',
+            background: 'var(--gold-dim)',
+            boxShadow: '0 0 8px 1.5px rgba(212,165,116,0.6)',
           }}
           initial={{ opacity: 0 }}
           animate={{
@@ -85,8 +85,8 @@ export default function GridBackground() {
         >
           <div
             style={{
-              position: 'absolute', top: 0, right: 2, width: 90, height: 1,
-              background: 'linear-gradient(90deg, rgba(43,233,212,0.9), transparent)',
+              position: 'absolute', top: 0, right: 2, width: 100, height: 1,
+              background: 'linear-gradient(90deg, rgba(212,165,116,0.8), transparent)',
               transform: 'rotate(210deg)', transformOrigin: 'right center',
             }}
           />
