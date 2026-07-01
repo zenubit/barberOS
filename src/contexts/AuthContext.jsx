@@ -7,7 +7,7 @@ const AuthContext = createContext({
   loading: false,
   error: null,
   isLoggedIn: false,
-  isAdmin: false,
+  isStaff: false,
   userStatus: null,
   updateProfile: () => Promise.reject('Not implemented'),
   signOut: () => Promise.reject('Not implemented'),

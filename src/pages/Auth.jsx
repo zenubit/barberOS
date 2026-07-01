@@ -61,7 +61,7 @@ export default function Auth() {
             key={t}
             onClick={() => { setTab(t); setLocalError(null); }}
             className="flex-1 py-2.5 rounded-md text-sm font-medium transition-all cursor-pointer"
-            style={tab === t ? { background: 'var(--teal)', color: '#06120F' } : { color: 'var(--ink-muted)' }}
+            style={tab === t ? { background: 'var(--teal)', color: 'var(--accent-ink)' } : { color: 'var(--ink-muted)' }}
           >
             {t === 'login' ? 'Ingresar' : 'Crear cuenta'}
           </button>
@@ -77,12 +77,12 @@ export default function Auth() {
       {tab === 'login' ? (
         <form onSubmit={handleLogin} className="space-y-4">
           <input
-            className="input" placeholder="Correo o teléfono"
+            className="input" placeholder="Correo o teléfono" autoComplete="username"
             value={loginForm.identifier}
             onChange={e => setLoginForm({ ...loginForm, identifier: e.target.value })}
           />
           <input
-            className="input" type="password" placeholder="Contraseña"
+            className="input" type="password" placeholder="Contraseña" autoComplete="current-password"
             value={loginForm.password}
             onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
           />
@@ -93,12 +93,12 @@ export default function Auth() {
       ) : (
         <form onSubmit={handleSignup} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <input className="input" placeholder="Nombre" value={signupForm.first_name} onChange={e => setSignupForm({ ...signupForm, first_name: e.target.value })} />
-            <input className="input" placeholder="Apellido" value={signupForm.first_lastname} onChange={e => setSignupForm({ ...signupForm, first_lastname: e.target.value })} />
+            <input className="input" placeholder="Nombre" autoComplete="given-name" value={signupForm.first_name} onChange={e => setSignupForm({ ...signupForm, first_name: e.target.value })} />
+            <input className="input" placeholder="Apellido" autoComplete="family-name" value={signupForm.first_lastname} onChange={e => setSignupForm({ ...signupForm, first_lastname: e.target.value })} />
           </div>
-          <input className="input" placeholder="Correo" type="email" value={signupForm.email} onChange={e => setSignupForm({ ...signupForm, email: e.target.value })} />
-          <input className="input" placeholder="Teléfono" value={signupForm.phone} onChange={e => setSignupForm({ ...signupForm, phone: e.target.value })} />
-          <input className="input" placeholder="Contraseña" type="password" value={signupForm.password} onChange={e => setSignupForm({ ...signupForm, password: e.target.value })} />
+          <input className="input" placeholder="Correo" type="email" autoComplete="email" value={signupForm.email} onChange={e => setSignupForm({ ...signupForm, email: e.target.value })} />
+          <input className="input" placeholder="Teléfono" type="tel" autoComplete="tel" value={signupForm.phone} onChange={e => setSignupForm({ ...signupForm, phone: e.target.value })} />
+          <input className="input" placeholder="Contraseña" type="password" autoComplete="new-password" value={signupForm.password} onChange={e => setSignupForm({ ...signupForm, password: e.target.value })} />
           <button type="submit" disabled={submitting} className="btn-teal w-full flex items-center justify-center gap-2">
             {submitting ? 'Creando...' : <>Crear cuenta <Icon name="ArrowRight" size={16} /></>}
           </button>

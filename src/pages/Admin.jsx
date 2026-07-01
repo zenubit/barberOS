@@ -1,30 +1,69 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon, Logo } from '../components/Shared';
 import { useAuth } from '../contexts/AuthContext';
+import { useMyBarber } from '../hooks/useMyBarber';
 import DashboardView from '../components/admin/DashboardView';
 import AppointmentsManager from '../components/admin/AppointmentsManager';
-import BarbersManager from '../components/admin/BarbersManager';
+import TeamManager from '../components/admin/TeamManager';
 import ServicesManager from '../components/admin/ServicesManager';
+import MyServicesManager from '../components/admin/MyServicesManager';
 import ScheduleManager from '../components/admin/ScheduleManager';
-import { PlaceholderView } from '../components/admin/AdminShared';
+import ProductsManager from '../components/admin/ProductsManager';
+import CashManager from '../components/admin/CashManager';
+import RafflesManager from '../components/admin/RafflesManager';
 
-const NAV_ITEMS = [
-  { id: 'dashboard', icon: 'LayoutDashboard', label: 'Dashboard' },
-  { id: 'citas', icon: 'Calendar', label: 'Citas' },
-  { id: 'equipo', icon: 'Users', label: 'Trabajadores' },
-  { id: 'servicios', icon: 'Scissors', label: 'Servicios' },
-  { id: 'horario', icon: 'Clock', label: 'Horarios y bloqueos' },
-  { id: 'tienda', icon: 'ShoppingBag', label: 'Tienda' },
-  { id: 'caja', icon: 'Banknote', label: 'Caja y gastos' },
-  { id: 'sorteos', icon: 'Gift', label: 'Sorteos' },
-];
+function buildNavItems(role, myBarberId) {
+  const isSuperAdmin = role === 'super_admin';
+  const isShopWide = role === 'admin' || role === 'super_admin';
+
+  const items = [
+    {
+      id: 'dashboard',
+      icon: 'LayoutDashboard',
+      label: isShopWide ? 'Dashboard' : 'Mi día',
+      render: () => <DashboardView barberId={isShopWide ? null : myBarberId} />,
+    },
+    {
+      id: 'citas',
+      icon: 'Calendar',
+      label: isShopWide ? 'Citas' : 'Mis citas',
+      render: () => <AppointmentsManager fixedBarberId={isShopWide ? null : myBarberId} />,
+    },
+  ];
+
+  if (isSuperAdmin) {
+    items.push({ id: 'equipo', icon: 'Users', label: 'Usuarios y equipo', render: () => <TeamManager /> });
+    items.push({ id: 'catalogo', icon: 'Scissors', label: 'Catálogo de servicios', render: () => <ServicesManager /> });
+  }
+
+  items.push({ id: 'mis-servicios', icon: 'ListChecks', label: 'Mis servicios', render: () => <MyServicesManager barberId={myBarberId} /> });
+
+  if (isSuperAdmin) {
+    items.push({ id: 'horarios', icon: 'Clock', label: 'Horarios (todos)', render: () => <ScheduleManager /> });
+  }
+  items.push({ id: 'mi-horario', icon: 'CalendarClock', label: 'Mi horario', render: () => <ScheduleManager fixedBarberId={myBarberId} /> });
+
+  if (isSuperAdmin) {
+    items.push({ id: 'tienda', icon: 'ShoppingBag', label: 'Tienda', render: () => <ProductsManager /> });
+    items.push({ id: 'caja-global', icon: 'Banknote', label: 'Caja global', render: () => <CashManager /> });
+    items.push({ id: 'sorteos', icon: 'Gift', label: 'Sorteos', render: () => <RafflesManager /> });
+  }
+  items.push({ id: 'mi-caja', icon: 'Wallet', label: 'Mi caja', render: () => <CashManager fixedBarberId={myBarberId} /> });
+
+  return items;
+}
 
 export default function Admin() {
-  const [view, setView] = useState('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { profile } = useAuth();
+  const { barberId: myBarberId, loading: barberLoading } = useMyBarber(profile);
+  const navItems = useMemo(() => buildNavItems(profile?.role, myBarberId), [profile?.role, myBarberId]);
+
+  const [view, setView] = useState(navItems[0]?.id || 'dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
+
+  const activeItem = navItems.find(n => n.id === view) || navItems[0];
 
   return (
     <div className="h-screen w-full overflow-hidden flex" style={{ background: 'var(--bg)', color: 'var(--ink)' }}>
@@ -36,10 +75,12 @@ export default function Admin() {
       >
         <div className="p-5 border-b" style={{ borderColor: 'var(--border)' }}>
           <Logo size={26} />
-          <div className="text-[10px] font-mono tracking-widest uppercase mt-2" style={{ color: 'var(--ink-faint)' }}>admin</div>
+          <div className="text-[10px] font-mono tracking-widest uppercase mt-2" style={{ color: 'var(--ink-faint)' }}>
+            {profile?.role === 'super_admin' ? 'super admin' : profile?.role === 'admin' ? 'admin' : 'barbero'}
+          </div>
         </div>
         <nav className="flex-1 py-3 overflow-y-auto">
-          {NAV_ITEMS.map(it => (
+          {navItems.map(it => (
             <button
               key={it.id}
               onClick={() => { setView(it.id); setSidebarOpen(false); }}
@@ -51,7 +92,7 @@ export default function Admin() {
         </nav>
         <div className="p-4 border-t" style={{ borderColor: 'var(--border)' }}>
           <div className="flex items-center gap-3 p-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center font-mono text-xs font-semibold" style={{ background: 'var(--teal)', color: '#06120F' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center font-mono text-xs font-semibold" style={{ background: 'var(--teal)', color: 'var(--accent-ink)' }}>
               {(profile?.first_name || '?')[0]}
             </div>
             <div className="text-xs">{profile?.first_name} {profile?.first_lastname}</div>
@@ -67,18 +108,15 @@ export default function Admin() {
           <button onClick={() => setSidebarOpen(true)} className="lg:hidden w-9 h-9 rounded-lg border flex items-center justify-center" style={{ borderColor: 'var(--border-strong)', color: 'var(--ink-muted)' }}>
             <Icon name="Menu" size={16} />
           </button>
-          <div className="text-sm font-medium capitalize">{NAV_ITEMS.find(n => n.id === view)?.label}</div>
+          <div className="text-sm font-medium capitalize">{activeItem?.label}</div>
         </header>
 
         <main className="flex-1 p-5 sm:p-8 overflow-y-auto">
-          {view === 'dashboard' && <DashboardView />}
-          {view === 'citas' && <AppointmentsManager />}
-          {view === 'equipo' && <BarbersManager />}
-          {view === 'servicios' && <ServicesManager />}
-          {view === 'horario' && <ScheduleManager />}
-          {view === 'tienda' && <PlaceholderView name="Tienda de productos" />}
-          {view === 'caja' && <PlaceholderView name="Caja y gastos" />}
-          {view === 'sorteos' && <PlaceholderView name="Sorteos" />}
+          {barberLoading ? (
+            <p className="text-sm" style={{ color: 'var(--ink-faint)' }}>Cargando...</p>
+          ) : (
+            activeItem?.render()
+          )}
         </main>
       </div>
     </div>

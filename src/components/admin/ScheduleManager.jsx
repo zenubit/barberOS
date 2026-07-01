@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../Shared';
-import { Modal, Field } from './AdminShared';
+import { Modal, Field, ErrorBanner } from './AdminShared';
 import barbersService from '../../services/barbersService';
 import scheduleService from '../../services/scheduleService';
 
@@ -16,9 +16,9 @@ const BLOCK_TYPES = [
 const EMPTY_BLOCK = { block_type: 'lunch', start_date: '', end_date: '', start_time: '12:00', end_time: '13:00', recurrence: 'daily', reason: '' };
 const EMPTY_RESERVED = { client_name: '', client_phone: '', slot_date: '', start_time: '', end_time: '', notes: '' };
 
-export default function ScheduleManager() {
+export default function ScheduleManager({ fixedBarberId = null }) {
   const [barbers, setBarbers] = useState([]);
-  const [barberId, setBarberId] = useState(null);
+  const [barberId, setBarberId] = useState(fixedBarberId);
   const [tab, setTab] = useState('schedule');
 
   const [schedule, setSchedule] = useState([]);
@@ -27,27 +27,37 @@ export default function ScheduleManager() {
 
   const [blockForm, setBlockForm] = useState(null);
   const [reservedForm, setReservedForm] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (fixedBarberId) { setBarberId(fixedBarberId); return; }
     (async () => {
-      const b = await barbersService.getAllBarbers(true);
-      setBarbers(b || []);
-      if (b?.length) setBarberId(b[0].id);
+      try {
+        const b = await barbersService.getAllBarbers(true);
+        setBarbers(b || []);
+        if (b?.length) setBarberId(b[0].id);
+      } catch (err) {
+        setError(err.message || 'No se pudieron cargar los trabajadores');
+      }
     })();
-  }, []);
+  }, [fixedBarberId]);
 
   const loadAll = async (id) => {
     if (!id) return;
-    const [sch, blk, res] = await Promise.all([
-      scheduleService.getBarberSchedule(id),
-      scheduleService.getBlocks(id),
-      scheduleService.getReservedSlots(id),
-    ]);
-    const byDay = {};
-    (sch || []).forEach(row => { byDay[row.day_of_week] = row; });
-    setSchedule(DAYS.map((_, i) => byDay[i] || { day_of_week: i, open_time: '09:00', close_time: '18:00', is_active: false }));
-    setBlocks(blk || []);
-    setReserved(res || []);
+    try {
+      const [sch, blk, res] = await Promise.all([
+        scheduleService.getBarberSchedule(id),
+        scheduleService.getBlocks(id),
+        scheduleService.getReservedSlots(id),
+      ]);
+      const byDay = {};
+      (sch || []).forEach(row => { byDay[row.day_of_week] = row; });
+      setSchedule(DAYS.map((_, i) => byDay[i] || { day_of_week: i, open_time: '09:00', close_time: '18:00', is_active: false }));
+      setBlocks(blk || []);
+      setReserved(res || []);
+    } catch (err) {
+      setError(err.message || 'No se pudo cargar el horario');
+    }
   };
 
   useEffect(() => { loadAll(barberId); }, [barberId]);
@@ -56,42 +66,70 @@ export default function ScheduleManager() {
     const current = schedule.find(d => d.day_of_week === day);
     const merged = { ...current, ...updates };
     setSchedule(schedule.map(d => d.day_of_week === day ? merged : d));
-    await scheduleService.upsertScheduleDay(barberId, day, {
-      open_time: merged.open_time, close_time: merged.close_time, is_active: merged.is_active,
-    });
+    try {
+      await scheduleService.upsertScheduleDay(barberId, day, {
+        open_time: merged.open_time, close_time: merged.close_time, is_active: merged.is_active,
+      });
+    } catch (err) {
+      setError(err.message || 'No se pudo guardar el horario del día');
+    }
   };
 
   const saveBlock = async () => {
-    await scheduleService.createBlock({ ...blockForm, barber_id: barberId });
-    setBlockForm(null);
-    await loadAll(barberId);
+    setError(null);
+    try {
+      await scheduleService.createBlock({ ...blockForm, barber_id: barberId });
+      setBlockForm(null);
+      await loadAll(barberId);
+    } catch (err) {
+      setError(err.message || 'No se pudo guardar el bloqueo');
+    }
   };
 
   const removeBlock = async (id) => {
     if (!confirm('¿Eliminar este bloqueo?')) return;
-    await scheduleService.deleteBlock(id);
-    await loadAll(barberId);
+    setError(null);
+    try {
+      await scheduleService.deleteBlock(id);
+      await loadAll(barberId);
+    } catch (err) {
+      setError(err.message || 'No se pudo eliminar el bloqueo');
+    }
   };
 
   const saveReserved = async () => {
-    await scheduleService.createReservedSlot({ ...reservedForm, barber_id: barberId });
-    setReservedForm(null);
-    await loadAll(barberId);
+    setError(null);
+    try {
+      await scheduleService.createReservedSlot({ ...reservedForm, barber_id: barberId });
+      setReservedForm(null);
+      await loadAll(barberId);
+    } catch (err) {
+      setError(err.message || 'No se pudo reservar la franja');
+    }
   };
 
   const cancelReserved = async (id) => {
-    await scheduleService.cancelReservedSlot(id);
-    await loadAll(barberId);
+    setError(null);
+    try {
+      await scheduleService.cancelReservedSlot(id);
+      await loadAll(barberId);
+    } catch (err) {
+      setError(err.message || 'No se pudo cancelar la franja');
+    }
   };
 
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <h2 className="font-display font-bold text-xl">Horarios y bloqueos</h2>
-        <select className="input !w-auto" value={barberId || ''} onChange={e => setBarberId(e.target.value)}>
-          {barbers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-        </select>
+        <h2 className="font-display font-bold text-xl">{fixedBarberId ? 'Mi horario' : 'Horarios y bloqueos'}</h2>
+        {!fixedBarberId && (
+          <select className="input !w-auto" value={barberId || ''} onChange={e => setBarberId(e.target.value)}>
+            {barbers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+        )}
       </div>
+
+      <ErrorBanner message={error} onDismiss={() => setError(null)} />
 
       <div className="flex gap-2 mb-6 p-1 rounded-lg w-fit" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
         {[
@@ -103,7 +141,7 @@ export default function ScheduleManager() {
             key={t.id}
             onClick={() => setTab(t.id)}
             className="px-4 py-2 rounded-md text-xs font-medium transition-all cursor-pointer"
-            style={tab === t.id ? { background: 'var(--teal)', color: '#06120F' } : { color: 'var(--ink-muted)' }}
+            style={tab === t.id ? { background: 'var(--teal)', color: 'var(--accent-ink)' } : { color: 'var(--ink-muted)' }}
           >
             {t.label}
           </button>
@@ -142,7 +180,7 @@ export default function ScheduleManager() {
                   <span className="text-sm">{b.start_date} → {b.end_date}{b.start_time ? ` · ${b.start_time.slice(0,5)}-${b.end_time.slice(0,5)}` : ' (todo el día)'}</span>
                   {b.reason && <p className="text-xs mt-1" style={{ color: 'var(--ink-faint)' }}>{b.reason}</p>}
                 </div>
-                <button onClick={() => removeBlock(b.id)} style={{ color: '#ff8080' }}><Icon name="Trash2" size={15} /></button>
+                <button onClick={() => removeBlock(b.id)} aria-label="Eliminar bloqueo" style={{ color: '#ff8080' }}><Icon name="Trash2" size={15} /></button>
               </div>
             ))}
           </div>
@@ -163,7 +201,7 @@ export default function ScheduleManager() {
                   <span className="text-sm">{r.client_name} · {r.slot_date} · {r.start_time?.slice(0,5)}-{r.end_time?.slice(0,5)}</span>
                 </div>
                 {r.status === 'reserved' && (
-                  <button onClick={() => cancelReserved(r.id)} style={{ color: '#ff8080' }}><Icon name="X" size={15} /></button>
+                  <button onClick={() => cancelReserved(r.id)} aria-label="Cancelar franja reservada" style={{ color: '#ff8080' }}><Icon name="X" size={15} /></button>
                 )}
               </div>
             ))}

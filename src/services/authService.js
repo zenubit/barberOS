@@ -17,8 +17,9 @@ export const authService = {
       if (!first_name || !first_lastname) throw new Error('Nombre y apellido son requeridos');
 
       if (phone) {
-        const { data } = await supabase.from('profiles').select('id').eq('phone', phone).limit(1);
-        if (data && data.length > 0) throw new Error('Este número de teléfono ya está registrado por otro usuario');
+        const { data: exists, error: phoneError } = await supabase.rpc('phone_exists', { p_phone: phone });
+        if (phoneError) handleError(phoneError, 'signUp (phone check)');
+        if (exists) throw new Error('Este número de teléfono ya está registrado por otro usuario');
       }
 
       const { data, error } = await supabase.auth.signUp({
@@ -54,20 +55,10 @@ export const authService = {
         const searchClean = identifier.replace(/\D/g, '');
         if (searchClean.length < 7) throw new Error('Ingresa un correo o número de teléfono válido.');
 
-        const { data: profiles, error: profileError } = await supabase
-          .from('profiles')
-          .select('email, phone')
-          .not('phone', 'is', null);
-
-        if (profileError || !profiles) throw new Error('No se pudo verificar el número de teléfono.');
-
-        const matchedProfile = profiles.find(p => {
-          if (!p.phone) return false;
-          return p.phone.replace(/\D/g, '').endsWith(searchClean);
-        });
-
-        if (!matchedProfile) throw new Error('No se encontró una cuenta con ese número de teléfono.');
-        emailToLogin = matchedProfile.email;
+        const { data: matchedEmail, error: phoneError } = await supabase.rpc('find_email_by_phone', { p_phone: identifier });
+        if (phoneError) throw new Error('No se pudo verificar el número de teléfono.');
+        if (!matchedEmail) throw new Error('No se encontró una cuenta con ese número de teléfono.');
+        emailToLogin = matchedEmail;
       }
 
       const { data, error } = await supabase.auth.signInWithPassword({ email: emailToLogin, password });

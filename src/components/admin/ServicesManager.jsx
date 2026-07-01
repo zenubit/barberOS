@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../Shared';
 import { formatCOP } from '../../data/businessData';
-import { Modal, Field } from './AdminShared';
+import { Modal, Field, ErrorBanner, TableSkeleton } from './AdminShared';
 import servicesService from '../../services/servicesService';
 
 const EMPTY = { name: '', subtitle: '', description: '', price: '', duration_minutes: 45, max_capacity: 1, category: 'otro', available: true };
@@ -11,10 +11,13 @@ export default function ServicesManager() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
+  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try { setServices(await servicesService.getAllServicesAdmin() || []); }
+    catch (err) { setError(err.message || 'No se pudieron cargar los servicios'); }
     finally { setLoading(false); }
   };
 
@@ -24,17 +27,30 @@ export default function ServicesManager() {
   const openEdit = (s) => { setEditing(s.id); setForm(s); };
 
   const save = async () => {
-    const payload = { ...form, price: Number(form.price), duration_minutes: Number(form.duration_minutes), max_capacity: Number(form.max_capacity) };
-    if (editing === 'new') await servicesService.createService(payload);
-    else await servicesService.updateService(editing, payload);
-    setEditing(null);
-    await load();
+    setSaving(true);
+    setError(null);
+    try {
+      const payload = { ...form, price: Number(form.price), duration_minutes: Number(form.duration_minutes), max_capacity: Number(form.max_capacity) };
+      if (editing === 'new') await servicesService.createService(payload);
+      else await servicesService.updateService(editing, payload);
+      setEditing(null);
+      await load();
+    } catch (err) {
+      setError(err.message || 'No se pudo guardar el servicio');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const remove = async (id) => {
     if (!confirm('¿Eliminar este servicio?')) return;
-    await servicesService.deleteService(id);
-    await load();
+    setError(null);
+    try {
+      await servicesService.deleteService(id);
+      await load();
+    } catch (err) {
+      setError(err.message || 'No se pudo eliminar el servicio');
+    }
   };
 
   return (
@@ -46,7 +62,9 @@ export default function ServicesManager() {
         </button>
       </div>
 
-      {loading ? <p className="text-sm" style={{ color: 'var(--ink-faint)' }}>Cargando...</p> : (
+      <ErrorBanner message={error} onDismiss={() => setError(null)} />
+
+      {loading ? <div className="surface overflow-hidden"><TableSkeleton cols={6} /></div> : (
         <div className="surface overflow-hidden">
           <table className="table">
             <thead><tr><th>Nombre</th><th>Duración</th><th>Capacidad</th><th>Precio</th><th>Estado</th><th></th></tr></thead>
@@ -60,8 +78,8 @@ export default function ServicesManager() {
                   <td><span className={`pill ${s.available ? 'pill-teal' : 'pill-ink'}`}>{s.available ? 'activo' : 'inactivo'}</span></td>
                   <td>
                     <div className="flex items-center gap-3">
-                      <button onClick={() => openEdit(s)} style={{ color: 'var(--ink-muted)' }}><Icon name="Pencil" size={15} /></button>
-                      <button onClick={() => remove(s.id)} style={{ color: '#ff8080' }}><Icon name="Trash2" size={15} /></button>
+                      <button onClick={() => openEdit(s)} aria-label={`Editar ${s.name}`} style={{ color: 'var(--ink-muted)' }}><Icon name="Pencil" size={15} /></button>
+                      <button onClick={() => remove(s.id)} aria-label={`Eliminar ${s.name}`} style={{ color: '#ff8080' }}><Icon name="Trash2" size={15} /></button>
                     </div>
                   </td>
                 </tr>
@@ -97,7 +115,7 @@ export default function ServicesManager() {
             <input type="checkbox" checked={form.available} onChange={e => setForm({ ...form, available: e.target.checked })} />
             <span className="text-sm" style={{ color: 'var(--ink-muted)' }}>Disponible para reservar</span>
           </label>
-          <button onClick={save} className="btn-teal w-full mt-2">Guardar</button>
+          <button onClick={save} disabled={saving} className="btn-teal w-full mt-2">{saving ? 'Guardando...' : 'Guardar'}</button>
         </Modal>
       )}
     </div>

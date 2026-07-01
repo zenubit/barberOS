@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Icon } from '../components/Shared';
+import { Icon, Skeleton } from '../components/Shared';
 import { formatCOP } from '../data/businessData';
 import servicesService from '../services/servicesService';
 import barbersService from '../services/barbersService';
@@ -12,6 +12,12 @@ const FEATURES = [
   { icon: 'CalendarClock', title: 'Bloqueos inteligentes', desc: 'Almuerzo, días libres o vacaciones sin pisar turnos.' },
   { icon: 'Star', title: 'Clientes frecuentes', desc: 'Franjas reservadas para quienes ya son de la casa.' },
 ];
+
+function handleSpotlight(e) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  e.currentTarget.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+  e.currentTarget.style.setProperty('--my', `${e.clientY - rect.top}px`);
+}
 
 export default function Home() {
   const [services, setServices] = useState([]);
@@ -43,10 +49,13 @@ export default function Home() {
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
           <div className="pill pill-teal mb-6">
-            <span className="cursor-blink">●</span> sistema en línea
+            <span className="cursor-blink">●</span> reservas abiertas
           </div>
-          <h1 className="font-display font-extrabold leading-[1.05] text-[42px] sm:text-[56px] md:text-[68px] max-w-3xl">
-            Agenda tu cita <span className="text-teal-glow">en segundos</span><span className="cursor-blink">_</span>
+          <h1
+            className="font-display font-semibold leading-[1.05] max-w-3xl"
+            style={{ fontSize: 'clamp(2.5rem, 2rem + 4vw, 4.5rem)' }}
+          >
+            Agenda tu cita <span className="text-teal-glow italic">en segundos</span><span className="cursor-blink">_</span>
           </h1>
           <p className="mt-6 max-w-xl text-[15px] md:text-[17px]" style={{ color: 'var(--ink-muted)' }}>
             Elige tu servicio, tu barbero de confianza y el horario que más te convenga.
@@ -73,10 +82,11 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: i * 0.08 }}
-              className="hud surface p-6"
+              onMouseMove={handleSpotlight}
+              className="hud surface spotlight-card p-6"
             >
               <span className="hud-bl" /><span className="hud-br" />
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4" style={{ background: 'rgba(0,245,212,0.1)' }}>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4" style={{ background: 'rgba(43,233,212,0.14)' }}>
                 <Icon name={f.icon} size={18} style={{ color: 'var(--teal)' }} />
               </div>
               <h3 className="font-display font-semibold text-[15px] mb-2">{f.title}</h3>
@@ -90,21 +100,36 @@ export default function Home() {
       <section id="servicios" className="max-w-6xl mx-auto px-5 sm:px-8 pb-24 scroll-mt-24">
         <div className="flex items-end justify-between mb-8">
           <div>
-            <span className="font-mono text-[11px] tracking-[.2em] uppercase" style={{ color: 'var(--teal)' }}>// servicios</span>
-            <h2 className="font-display font-bold text-2xl md:text-3xl mt-2">Qué puedes agendar</h2>
+            <span className="font-display italic text-base" style={{ color: 'var(--teal)' }}>Servicios</span>
+            <h2 className="font-display font-semibold text-2xl md:text-3xl mt-1">Qué puedes agendar</h2>
           </div>
         </div>
 
         {loading ? (
-          <div className="text-sm" style={{ color: 'var(--ink-faint)' }}>Cargando servicios...</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="glass-panel p-6">
+                <Skeleton className="h-5 w-2/3 rounded mb-3" />
+                <Skeleton className="h-4 w-1/2 rounded mb-6" />
+                <Skeleton className="h-6 w-1/3 rounded" />
+              </div>
+            ))}
+          </div>
         ) : services.length === 0 ? (
           <div className="surface p-8 text-center text-sm" style={{ color: 'var(--ink-faint)' }}>
             Aún no hay servicios configurados. Agrégalos desde el panel admin.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {services.map(s => (
-              <div key={s.id} className="glass-panel p-6 flex flex-col">
+            {services.map((s, i) => (
+              <motion.div
+                key={s.id}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: (i % 3) * 0.08 }}
+                className="glass-panel p-6 flex flex-col"
+              >
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="font-display font-semibold text-lg">{s.name}</h3>
                   <span className="pill pill-teal">{s.duration_minutes} min</span>
@@ -116,7 +141,7 @@ export default function Home() {
                     Reservar →
                   </Link>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         )}
@@ -125,17 +150,25 @@ export default function Home() {
       {/* Equipo */}
       {barbers.length > 0 && (
         <section className="max-w-6xl mx-auto px-5 sm:px-8 pb-24">
-          <span className="font-mono text-[11px] tracking-[.2em] uppercase" style={{ color: 'var(--teal)' }}>// equipo</span>
-          <h2 className="font-display font-bold text-2xl md:text-3xl mt-2 mb-8">Nuestros barberos</h2>
+          <span className="font-display italic text-base" style={{ color: 'var(--teal)' }}>Equipo</span>
+          <h2 className="font-display font-semibold text-2xl md:text-3xl mt-1 mb-8">Nuestros barberos</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {barbers.map(b => (
-              <div key={b.id} className="surface p-5 text-center">
+            {barbers.map((b, i) => (
+              <motion.div
+                key={b.id}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.35, delay: (i % 4) * 0.06 }}
+                className="surface p-5 text-center"
+              >
                 <div className="w-14 h-14 mx-auto rounded-full flex items-center justify-center font-mono font-bold text-lg mb-3" style={{ background: 'var(--surface-3)', color: 'var(--teal)' }}>
                   {b.name?.[0] || '?'}
                 </div>
                 <p className="font-medium text-sm">{b.name}</p>
                 <p className="text-xs" style={{ color: 'var(--ink-faint)' }}>{b.role}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
         </section>

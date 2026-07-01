@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Icon } from '../components/Shared';
+import { Icon, Skeleton } from '../components/Shared';
 import { formatCOP } from '../data/businessData';
 import { useAuth } from '../contexts/AuthContext';
 import appointmentsService from '../services/appointmentsService';
@@ -49,7 +49,14 @@ export default function Profile() {
       <p className="text-sm mb-10" style={{ color: 'var(--ink-muted)' }}>Este es tu historial de citas.</p>
 
       {loading ? (
-        <p className="text-sm" style={{ color: 'var(--ink-faint)' }}>Cargando...</p>
+        <div className="space-y-3">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="surface p-5">
+              <Skeleton className="h-4 w-1/3 rounded mb-2" />
+              <Skeleton className="h-3 w-1/2 rounded" />
+            </div>
+          ))}
+        </div>
       ) : appointments.length === 0 ? (
         <div className="surface p-8 text-center text-sm" style={{ color: 'var(--ink-faint)' }}>
           Aún no tienes citas agendadas.

@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   phone TEXT,
   identification TEXT,
   identification_type TEXT DEFAULT 'CC' CHECK (identification_type IN ('CC', 'TI', 'CE', 'PP', 'NIT')),
-  role TEXT DEFAULT 'customer' CHECK (role IN ('customer', 'admin', 'barber')),
+  role TEXT DEFAULT 'customer' CHECK (role IN ('customer', 'admin', 'barber', 'super_admin')),
   avatar_url TEXT,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'blocked', 'suspended')),
   is_frequent BOOLEAN DEFAULT FALSE,
@@ -269,6 +269,7 @@ CREATE TABLE IF NOT EXISTS public.daily_sales (
   price_per_unit NUMERIC NOT NULL,
   total NUMERIC GENERATED ALWAYS AS (quantity * price_per_unit) STORED,
   description TEXT,
+  barber_id UUID REFERENCES public.barbers(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -278,6 +279,7 @@ CREATE TABLE IF NOT EXISTS public.expenses (
   category TEXT NOT NULL DEFAULT 'Otro',
   description TEXT NOT NULL,
   amount NUMERIC NOT NULL,
+  barber_id UUID REFERENCES public.barbers(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -510,6 +512,51 @@ BEGIN
 END;
 $$;
 
+-- Búsqueda de email por teléfono y chequeo de teléfono duplicado
+-- (SECURITY DEFINER de superficie mínima, ver migrations/002_phone_lookup_rpc.sql)
+CREATE OR REPLACE FUNCTION public.find_email_by_phone(p_phone TEXT)
+RETURNS TEXT LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_clean TEXT;
+  v_email TEXT;
+BEGIN
+  v_clean := regexp_replace(COALESCE(p_phone, ''), '\D', '', 'g');
+  IF length(v_clean) < 7 THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT email INTO v_email
+  FROM public.profiles
+  WHERE phone IS NOT NULL
+    AND regexp_replace(phone, '\D', '', 'g') LIKE '%' || v_clean
+  LIMIT 1;
+
+  RETURN v_email;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.find_email_by_phone(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.find_email_by_phone(TEXT) TO anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.phone_exists(p_phone TEXT)
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_clean TEXT;
+BEGIN
+  v_clean := regexp_replace(COALESCE(p_phone, ''), '\D', '', 'g');
+  IF v_clean = '' THEN
+    RETURN FALSE;
+  END IF;
+
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE phone IS NOT NULL
+      AND regexp_replace(phone, '\D', '', 'g') = v_clean
+  );
+END;
+$$;
+REVOKE ALL ON FUNCTION public.phone_exists(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.phone_exists(TEXT) TO anon, authenticated;
+
 -- Slots disponibles para un trabajador + servicio en una fecha
 -- Tiene en cuenta: horario del trabajador, duración y capacidad del servicio,
 -- bloqueos (schedule_blocks) y franjas reservadas (reserved_slots) de otros clientes.
@@ -649,14 +696,35 @@ ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.daily_sales ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 
+-- is_admin() = admin o super_admin (gestión general); is_super_admin() = dueño
+-- (usuarios, catálogo maestro, tienda, sorteos, caja global); my_barber_id()
+-- resuelve la fila de barbers vinculada al usuario logueado (self-service).
+-- Ver migrations/003_roles_and_barber_cash.sql para el detalle de políticas RLS
+-- "self" vs "super_admin" agregadas sobre barbers/barber_services/
+-- barber_schedules/schedule_blocks/reserved_slots/daily_sales/expenses.
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
   RETURN EXISTS (
     SELECT 1 FROM public.profiles
-    WHERE id = auth.uid() AND role = 'admin'
+    WHERE id = auth.uid() AND role IN ('admin', 'super_admin')
   );
 END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_super_admin()
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'super_admin'
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.my_barber_id()
+RETURNS UUID LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT id FROM public.barbers WHERE profile_id = auth.uid() LIMIT 1;
 $$;
 
 -- PROFILES

@@ -47,12 +47,24 @@ export const barbersService = {
     }
   },
 
+  async getBarberByProfileId(profileId) {
+    try {
+      if (!profileId) throw new Error('Profile ID es requerido');
+      const { data, error } = await supabase.from('barbers').select('*').eq('profile_id', profileId).maybeSingle();
+      if (error) handleError(error, 'getBarberByProfileId');
+      return data;
+    } catch (err) {
+      handleError(err, 'getBarberByProfileId');
+    }
+  },
+
   async createBarber(barberData) {
     try {
       if (!barberData.name || !barberData.role) throw new Error('Campos requeridos faltantes (name, role)');
       const { data, error } = await supabase
         .from('barbers')
         .insert([{
+          profile_id: barberData.profile_id || null,
           name: barberData.name,
           role: barberData.role,
           years_experience: barberData.years_experience || 0,

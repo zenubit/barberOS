@@ -6,18 +6,18 @@ export function useUser() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isStaff, setIsStaff] = useState(false);
 
   const fetchProfile = useCallback(async (userId) => {
     try {
       const userProfile = await authService.getProfile(userId);
       setProfile(userProfile);
-      setIsAdmin(userProfile?.role === 'admin');
+      setIsStaff(['barber', 'admin', 'super_admin'].includes(userProfile?.role));
       return userProfile;
     } catch (err) {
       console.error('Error fetching profile:', err);
       setProfile(null);
-      setIsAdmin(false);
+      setIsStaff(false);
       return null;
     }
   }, []);
@@ -32,10 +32,10 @@ export function useUser() {
         if (isMounted) {
           setUser(currentUser);
           if (currentUser) await fetchProfile(currentUser.id);
-          else { setProfile(null); setIsAdmin(false); }
+          else { setProfile(null); setIsStaff(false); }
         }
       } catch {
-        if (isMounted) { setUser(null); setProfile(null); setIsAdmin(false); }
+        if (isMounted) { setUser(null); setProfile(null); setIsStaff(false); }
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -51,7 +51,7 @@ export function useUser() {
       } else {
         setUser(null);
         setProfile(null);
-        setIsAdmin(false);
+        setIsStaff(false);
       }
     });
 
@@ -65,7 +65,7 @@ export function useUser() {
       setError(null);
       const updated = await authService.updateProfile(user.id, updates);
       setProfile(updated);
-      if (updates.role) setIsAdmin(updated?.role === 'admin');
+      if (updates.role) setIsStaff(['barber', 'admin', 'super_admin'].includes(updated?.role));
       return updated;
     } catch (err) {
       setError(err.message || 'Error al actualizar perfil');
@@ -82,7 +82,7 @@ export function useUser() {
       await authService.signOut();
       setUser(null);
       setProfile(null);
-      setIsAdmin(false);
+      setIsStaff(false);
     } catch (err) {
       setError(err.message || 'Error al cerrar sesión');
       throw err;
@@ -155,7 +155,7 @@ export function useUser() {
   return {
     user, profile, loading, error,
     isLoggedIn: !!user,
-    isAdmin,
+    isStaff,
     userStatus: profile?.status || null,
     updateProfile, signOut, signIn, signUp, resetPassword, updatePassword, clearError,
   };

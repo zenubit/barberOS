@@ -27,3 +27,7 @@ export const HudCorners = () => (
     <span className="hud-br" />
   </>
 );
+
+export function Skeleton({ className = '', style = {} }) {
+  return <div className={`skeleton ${className}`} style={style} />;
+}

@@ -1,17 +1,21 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import Home from './pages/Home';
 import Booking from './pages/Booking';
 import Auth from './pages/Auth';
 import Profile from './pages/Profile';
-import Admin from './pages/Admin';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { Logo, Icon } from './components/Shared';
 import { CONTACT_INFO } from './data/businessData';
 import GridBackground from './components/GridBackground';
 import PageTransition from './components/PageTransition';
+import ErrorBoundary from './components/ErrorBoundary';
+import WelcomeSplash from './components/WelcomeSplash';
+import CursorGlow from './components/CursorGlow';
+
+const Admin = lazy(() => import('./pages/Admin'));
 
 function LoadingScreen() {
   return (
@@ -22,10 +26,14 @@ function LoadingScreen() {
 }
 
 function ProtectedAdminRoute() {
-  const { isAdmin, loading } = useAuth();
+  const { isStaff, loading } = useAuth();
   if (loading) return <LoadingScreen />;
-  if (!isAdmin) return <Navigate to="/" replace />;
-  return <Admin />;
+  if (!isStaff) return <Navigate to="/" replace />;
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <Admin />
+    </Suspense>
+  );
 }
 
 function ProtectedProfileRoute() {
@@ -73,7 +81,7 @@ function ThemeToggle() {
 }
 
 function UserMenu() {
-  const { isLoggedIn, profile, signOut, isAdmin } = useAuth();
+  const { isLoggedIn, profile, signOut, isStaff } = useAuth();
   const [open, setOpen] = useState(false);
 
   if (!isLoggedIn) {
@@ -91,8 +99,8 @@ function UserMenu() {
 
   return (
     <div className="relative">
-      <button onClick={() => setOpen(!open)} className="flex items-center gap-2 cursor-pointer group">
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center font-mono font-semibold" style={{ background: 'var(--teal)', color: '#06120F' }}>
+      <button onClick={() => setOpen(!open)} aria-label="Menú de usuario" aria-expanded={open} className="flex items-center gap-2 cursor-pointer group">
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center font-mono font-semibold" style={{ background: 'var(--teal)', color: 'var(--accent-ink)' }}>
           {initials}
         </div>
         <Icon name="ChevronDown" size={14} style={{ color: 'var(--ink-faint)' }} />
@@ -109,7 +117,7 @@ function UserMenu() {
             <Link to="/perfil" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:opacity-80" style={{ color: 'var(--ink-muted)' }}>
               <Icon name="User" size={16} /> Mis citas
             </Link>
-            {isAdmin && (
+            {isStaff && (
               <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:opacity-80" style={{ color: 'var(--ink-muted)' }}>
                 <Icon name="LayoutDashboard" size={16} /> Panel Admin
               </Link>
@@ -200,6 +208,21 @@ function Layout({ children }) {
   );
 }
 
+function NotFound() {
+  return (
+    <div className="max-w-md mx-auto px-5 py-32 text-center">
+      <p className="font-mono text-sm mb-3" style={{ color: 'var(--teal)' }}>404</p>
+      <h1 className="font-display font-bold text-2xl mb-3">Página no encontrada</h1>
+      <p className="text-sm mb-8" style={{ color: 'var(--ink-muted)' }}>
+        La página que buscas no existe o fue movida.
+      </p>
+      <Link to="/" className="btn-teal inline-flex items-center gap-2">
+        <Icon name="ArrowLeft" size={16} /> Volver al inicio
+      </Link>
+    </div>
+  );
+}
+
 function AnimatedRoutes() {
   const location = useLocation();
   return (
@@ -210,6 +233,7 @@ function AnimatedRoutes() {
         <Route path="/auth" element={<PageTransition><Auth /></PageTransition>} />
         <Route path="/perfil" element={<PageTransition><ProtectedProfileRoute /></PageTransition>} />
         <Route path="/admin/*" element={<PageTransition><ProtectedAdminRoute /></PageTransition>} />
+        <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>
     </AnimatePresence>
   );
@@ -217,17 +241,21 @@ function AnimatedRoutes() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <div className="min-h-screen flex flex-col relative font-sans" style={{ color: 'var(--ink)' }}>
-        <GridBackground />
-        <BrowserRouter>
-          <AuthProvider>
-            <Layout>
-              <AnimatedRoutes />
-            </Layout>
-          </AuthProvider>
-        </BrowserRouter>
-      </div>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <div className="min-h-screen flex flex-col relative font-sans" style={{ color: 'var(--ink)' }}>
+          <GridBackground />
+          <CursorGlow />
+          <WelcomeSplash />
+          <BrowserRouter>
+            <AuthProvider>
+              <Layout>
+                <AnimatedRoutes />
+              </Layout>
+            </AuthProvider>
+          </BrowserRouter>
+        </div>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }

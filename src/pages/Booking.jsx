@@ -6,12 +6,9 @@ import { useAuth } from '../contexts/AuthContext';
 import servicesService from '../services/servicesService';
 import barbersService from '../services/barbersService';
 import appointmentsService from '../services/appointmentsService';
+import { todayISO, toISODate } from '../lib/date';
 
 const STEPS = ['Servicio', 'Barbero', 'Fecha y hora', 'Confirmar'];
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function nextDays(n) {
   const days = [];
@@ -113,7 +110,7 @@ export default function Booking() {
   if (done) {
     return (
       <div className="max-w-lg mx-auto px-5 py-24 text-center">
-        <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-6" style={{ background: 'rgba(0,245,212,.1)' }}>
+        <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-6" style={{ background: 'rgba(43,233,212,.14)' }}>
           <Icon name="Check" size={28} style={{ color: 'var(--teal)' }} />
         </div>
         <h1 className="font-display font-bold text-2xl mb-3">Cita confirmada</h1>
@@ -197,7 +194,7 @@ export default function Booking() {
         <div>
           <div className="flex gap-2 overflow-x-auto pb-3 mb-6">
             {days.map(d => {
-              const iso = d.toISOString().slice(0, 10);
+              const iso = toISODate(d);
               const active = iso === selectedDate;
               return (
                 <button
@@ -206,7 +203,7 @@ export default function Booking() {
                   className="flex-shrink-0 w-16 py-3 rounded-lg text-center font-mono transition-all cursor-pointer"
                   style={{
                     background: active ? 'var(--teal)' : 'var(--surface-2)',
-                    color: active ? '#06120F' : 'var(--ink)',
+                    color: active ? 'var(--accent-ink)' : 'var(--ink)',
                     border: `1px solid ${active ? 'var(--teal)' : 'var(--border)'}`,
                   }}
                 >

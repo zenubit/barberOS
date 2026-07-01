@@ -33,3 +33,6 @@ secrets/
 # Temporary DB scripts (may contain credentials while testing)
 _test-*.js
 smoke-test.mjs
+seed-users.js
+smoke-test.js
+apply-migration.js
