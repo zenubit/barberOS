@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import Home from './pages/Home';
 import Booking from './pages/Booking';
@@ -82,8 +82,23 @@ function NavLink({ to, label }) {
 function UserMenu() {
   const { isLoggedIn, profile, signOut, isStaff } = useAuth();
   const [open, setOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [coords, setCoords] = useState({ top: 0, right: 0 });
   const btnRef = useRef(null);
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    setOpen(false);
+    setSigningOut(true);
+    try {
+      await signOut();
+      navigate('/', { replace: true });
+    } catch (err) {
+      console.error('Error al cerrar sesión:', err);
+    } finally {
+      setSigningOut(false);
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -152,11 +167,12 @@ function UserMenu() {
               </Link>
             )}
             <button
-              onClick={async () => { setOpen(false); await signOut(); window.location.href = '/'; }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:text-red-400 cursor-pointer"
+              onClick={handleSignOut}
+              disabled={signingOut}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:text-red-400 cursor-pointer disabled:opacity-50"
               style={{ color: 'var(--ink-muted)' }}
             >
-              <Icon name="LogOut" size={16} /> Cerrar sesión
+              <Icon name="LogOut" size={16} /> {signingOut ? 'Cerrando sesión…' : 'Cerrar sesión'}
             </button>
           </div>
         </>,

@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS public.barbers (
   phone TEXT,
   email TEXT,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'on-leave')),
+  photo_url TEXT, -- opcional, ver migrations/005_barber_photo.sql
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

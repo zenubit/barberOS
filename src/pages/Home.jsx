@@ -171,9 +171,18 @@ export default function Home() {
                 transition={{ duration: 0.35, delay: (i % 4) * 0.06 }}
                 className="surface p-5 text-center"
               >
-                <div className="w-14 h-14 mx-auto rounded-full flex items-center justify-center font-mono font-bold text-lg mb-3" style={{ background: 'var(--surface-3)', color: 'var(--teal)' }}>
-                  {b.name?.[0] || '?'}
-                </div>
+                {b.photo_url ? (
+                  <img
+                    src={b.photo_url}
+                    alt={b.name}
+                    className="w-14 h-14 mx-auto rounded-full object-cover mb-3"
+                    style={{ background: 'var(--surface-3)' }}
+                  />
+                ) : (
+                  <div className="w-14 h-14 mx-auto rounded-full flex items-center justify-center font-mono font-bold text-lg mb-3" style={{ background: 'var(--surface-3)', color: 'var(--teal)' }}>
+                    {b.name?.[0] || '?'}
+                  </div>
+                )}
                 <p className="font-medium text-sm">{b.name}</p>
                 <p className="text-xs" style={{ color: 'var(--ink-faint)' }}>{b.role}</p>
               </motion.div>

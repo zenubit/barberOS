@@ -105,9 +105,11 @@ export default function Admin() {
         style={{ background: 'var(--bg-2)', borderColor: 'var(--border)' }}
       >
         <div className="p-5 border-b" style={{ borderColor: 'var(--border)' }}>
-          <Logo size={26} />
+          <button onClick={() => navigate('/')} className="cursor-pointer" aria-label="Ir al inicio">
+            <Logo size={26} />
+          </button>
           <div className="text-[10px] font-mono tracking-widest uppercase mt-2" style={{ color: 'var(--ink-faint)' }}>
-            {profile?.role === 'super_admin' ? 'super admin' : profile?.role === 'admin' ? 'admin' : 'barbero'}
+            {profile?.role === 'super_admin' ? 'super admin · propietario' : profile?.role === 'admin' ? 'admin' : 'barbero'}
           </div>
         </div>
         <nav className="flex-1 py-3 overflow-y-auto">

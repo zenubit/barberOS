@@ -179,9 +179,13 @@ export default function Booking() {
               className="surface p-5 text-center transition-all cursor-pointer"
               style={selectedBarber?.id === b.id ? { borderColor: 'var(--teal)', boxShadow: '0 0 0 1px var(--teal)' } : {}}
             >
-              <div className="w-12 h-12 mx-auto rounded-full flex items-center justify-center font-mono font-bold mb-3" style={{ background: 'var(--surface-3)', color: 'var(--teal)' }}>
-                {b.name?.[0] || '?'}
-              </div>
+              {b.photo_url ? (
+                <img src={b.photo_url} alt={b.name} className="w-12 h-12 mx-auto rounded-full object-cover mb-3" style={{ background: 'var(--surface-3)' }} />
+              ) : (
+                <div className="w-12 h-12 mx-auto rounded-full flex items-center justify-center font-mono font-bold mb-3" style={{ background: 'var(--surface-3)', color: 'var(--teal)' }}>
+                  {b.name?.[0] || '?'}
+                </div>
+              )}
               <p className="text-sm font-medium">{b.name}</p>
               <p className="text-xs" style={{ color: 'var(--ink-faint)' }}>{b.role}</p>
             </button>

@@ -3,8 +3,9 @@ import { Icon } from '../Shared';
 import { Modal, Field, ErrorBanner, TableSkeleton } from './AdminShared';
 import barbersService from '../../services/barbersService';
 import servicesService from '../../services/servicesService';
+import { randomAvatarUrl } from '../../lib/avatar';
 
-const EMPTY = { name: '', role: 'Barbero', years_experience: '', signature_style: '', phone: '', email: '', status: 'active' };
+const EMPTY = { name: '', role: 'Barbero', years_experience: '', signature_style: '', phone: '', email: '', status: 'active', photo_url: '' };
 
 export default function BarbersManager() {
   const [barbers, setBarbers] = useState([]);
@@ -33,7 +34,7 @@ export default function BarbersManager() {
   useEffect(() => { load(); }, []);
 
   const openCreate = () => { setEditing('new'); setForm(EMPTY); };
-  const openEdit = (b) => { setEditing(b.id); setForm(b); };
+  const openEdit = (b) => { setEditing(b.id); setForm({ ...EMPTY, ...b, photo_url: b.photo_url || '' }); };
 
   const save = async () => {
     setSaving(true);
@@ -99,10 +100,19 @@ export default function BarbersManager() {
       {loading ? <div className="surface overflow-hidden"><TableSkeleton cols={5} /></div> : (
         <div className="surface overflow-hidden">
           <table className="table">
-            <thead><tr><th>Nombre</th><th>Rol</th><th>Estado</th><th>Servicios</th><th></th></tr></thead>
+            <thead><tr><th></th><th>Nombre</th><th>Rol</th><th>Estado</th><th>Servicios</th><th></th></tr></thead>
             <tbody>
               {barbers.map(b => (
                 <tr key={b.id}>
+                  <td>
+                    {b.photo_url ? (
+                      <img src={b.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" style={{ background: 'var(--surface-2)' }} />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-semibold" style={{ background: 'var(--surface-3)', color: 'var(--teal)' }}>
+                        {b.name?.[0] || '?'}
+                      </div>
+                    )}
+                  </td>
                   <td>{b.name}</td>
                   <td>{b.role}</td>
                   <td><span className={`pill ${b.status === 'active' ? 'pill-teal' : 'pill-ink'}`}>{b.status}</span></td>
@@ -124,6 +134,32 @@ export default function BarbersManager() {
 
       {editing && (
         <Modal title={editing === 'new' ? 'Nuevo trabajador' : 'Editar trabajador'} onClose={() => setEditing(null)}>
+          <Field label="Foto (opcional)">
+            <div className="flex items-center gap-3">
+              {form.photo_url ? (
+                <img src={form.photo_url} alt="" className="w-14 h-14 rounded-full object-cover" style={{ background: 'var(--surface-2)' }} />
+              ) : (
+                <div className="w-14 h-14 rounded-full flex items-center justify-center font-mono font-semibold" style={{ background: 'var(--surface-3)', color: 'var(--teal)' }}>
+                  {form.name?.[0] || '?'}
+                </div>
+              )}
+              <div className="flex-1 flex flex-col gap-2">
+                <input
+                  className="input"
+                  placeholder="https://... (URL de imagen)"
+                  value={form.photo_url || ''}
+                  onChange={e => setForm({ ...form, photo_url: e.target.value })}
+                />
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, photo_url: randomAvatarUrl(form.name || `barber-${Date.now()}`) })}
+                  className="btn-ghost !py-1.5 !px-3 !text-xs self-start inline-flex items-center gap-1.5"
+                >
+                  <Icon name="Shuffle" size={12} /> Foto aleatoria
+                </button>
+              </div>
+            </div>
+          </Field>
           <Field label="Nombre"><input className="input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></Field>
           <Field label="Rol"><input className="input" value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} /></Field>
           <Field label="Años de experiencia"><input className="input" type="number" value={form.years_experience} onChange={e => setForm({ ...form, years_experience: Number(e.target.value) })} /></Field>

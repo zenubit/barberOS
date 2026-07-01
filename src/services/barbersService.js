@@ -72,6 +72,7 @@ export const barbersService = {
           phone: barberData.phone || null,
           email: barberData.email || null,
           status: barberData.status || 'active',
+          photo_url: barberData.photo_url || null,
         }])
         .select();
       if (error) handleError(error, 'createBarber');
